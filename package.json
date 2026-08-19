@@ -1,0 +1,36 @@
+{
+  "name": "research-os-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Production-grade desktop AI study operating system for AI and Research Engineers",
+  "packageManager": "pnpm@10.28.2",
+  "scripts": {
+    "dev": "pnpm --filter @research-os/desktop dev",
+    "dev:all": "pnpm --parallel --filter \"@research-os/*\" dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "db:generate": "pnpm --filter @research-os/db generate",
+    "db:migrate": "pnpm --filter @research-os/db migrate",
+    "db:seed": "pnpm --filter @research-os/db seed",
+    "clean": "pnpm -r exec rimraf dist .next .turbo node_modules"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.7.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "better-sqlite3",
+      "electron",
+      "esbuild"
+    ]
+  },
+  "dependencies": {
+    "@libsql/client": "^0.17.4",
+    "drizzle-orm": "^0.39.3",
+    "xlsx": "^0.18.5"
+  }
+}

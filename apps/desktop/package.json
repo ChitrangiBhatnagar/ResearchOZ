@@ -1,0 +1,39 @@
+{
+  "name": "@research-os/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Production desktop AI study operating system for AI and Research Engineers",
+  "main": "./dist/main/main.js",
+  "scripts": {
+    "dev": "next dev --turbopack -p 3000",
+    "dev:electron": "tsc -p tsconfig.electron.json && electron .",
+    "build": "next build",
+    "build:electron": "tsc -p tsconfig.electron.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@research-os/db": "workspace:*",
+    "@research-os/shared": "workspace:*",
+    "@research-os/types": "workspace:*",
+    "@research-os/ui": "workspace:*",
+    "better-sqlite3": "^11.8.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.475.0",
+    "next": "^15.1.7",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "recharts": "^2.15.1",
+    "tailwind-merge": "^3.0.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.13.0",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
+    "autoprefixer": "^10.4.20",
+    "electron": "^34.2.0",
+    "postcss": "^8.5.2",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.3"
+  }
+}

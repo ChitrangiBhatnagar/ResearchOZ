@@ -1,0 +1,64 @@
+# Node & Dependencies
+node_modules/
+.pnpm-store/
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Storage (keep folder structures, ignore runtime generated data)
+storage/papers/*.pdf
+storage/cache/*
+storage/embeddings/*
+storage/*.db
+storage/*.db-journal
+storage/*.db-wal
+storage/*.db-shm
+!storage/papers/.gitkeep
+!storage/notes/.gitkeep
+!storage/cache/.gitkeep
+!storage/embeddings/.gitkeep
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment & Keys
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# OS
+.DS_Store
+Thumbs.db

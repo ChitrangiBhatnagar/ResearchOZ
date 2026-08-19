@@ -1,0 +1,30 @@
+{
+  "name": "@research-os/db",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Offline SQLite database, Drizzle ORM schemas, migrations and Excel importer for ResearchOS",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "generate": "drizzle-kit generate",
+    "migrate": "drizzle-kit migrate",
+    "push": "drizzle-kit push",
+    "studio": "drizzle-kit studio",
+    "seed": "tsx ./src/seed.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.17.4",
+    "@research-os/shared": "workspace:*",
+    "@research-os/types": "workspace:*",
+    "better-sqlite3": "^11.8.1",
+    "drizzle-orm": "^0.39.3",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "drizzle-kit": "^0.30.4",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}
