@@ -8,6 +8,13 @@ import { CommandPalette } from '@research-os/ui';
 import { useRouter } from 'next/navigation';
 import type { CommandPaletteAction } from '@research-os/types';
 import { ExcelImportModal } from '../components/excel-import-modal';
+import { Instrument_Sans, Montserrat } from "next/font/google";
+import { cn } from "@/lib/utils";
+
+const montserratHeading = Montserrat({subsets:['latin'],variable:'--font-heading'});
+
+const instrumentSans = Instrument_Sans({subsets:['latin'],variable:'--font-sans'});
+
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -69,14 +76,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   );
 
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className={cn("dark", "font-sans", instrumentSans.variable, montserratHeading.variable)}>
       <body className="bg-zinc-950 text-zinc-100 antialiased flex h-screen overflow-hidden font-sans">
-        <AppSidebar />
-        <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-          <Header onOpenCommandPalette={() => setCommandPaletteOpen(true)} />
-          <main className="flex-1 overflow-y-auto p-6 scrollbar-none">
-            {children}
-          </main>
+        <div className="flex-1 flex items-stretch p-6">
+          <div className="w-full rounded-3xl border border-zinc-800/60 bg-zinc-900/30 p-1 shadow-2xl overflow-hidden">
+            <div className="flex h-full min-h-0">
+              <AppSidebar />
+              <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden rounded-2xl bg-zinc-950/50">
+                <Header onOpenCommandPalette={() => setCommandPaletteOpen(true)} />
+                <main className="flex-1 overflow-y-auto p-6 scrollbar-none">
+                  {children}
+                </main>
+              </div>
+            </div>
+          </div>
         </div>
 
         <CommandPalette

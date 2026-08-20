@@ -14,17 +14,11 @@ import {
   Play,
   TrendingUp,
 } from 'lucide-react';
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-  Button,
-  Badge,
-  ProgressRing,
-  Heatmap,
-} from '@research-os/ui';
+import { Badge, ProgressRing, Heatmap } from '@research-os/ui';
+import { Button } from '../components/ui/button';
+import { Card } from '../components/ui/card';
+import { TopicTile } from '../components/ui/topic';
+import { MiniCalendar } from '../components/ui/calendar';
 import { generatePastNDaysHeatmap } from '@research-os/shared';
 import Link from 'next/link';
 
@@ -73,7 +67,7 @@ export default function DashboardPage() {
         </div>
         <div className="flex items-center space-x-2">
           <Link href="/roadmap">
-            <Button variant="outline" size="sm" className="text-xs flex items-center space-x-1.5 border-zinc-800">
+            <Button variant="outline" size="sm" className="text-xs flex items-center space-x-1.5">
               <Compass className="w-3.5 h-3.5 text-zinc-400" />
               <span>Curriculum Tree</span>
             </Button>
@@ -90,7 +84,7 @@ export default function DashboardPage() {
       {/* Metrics Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3.5">
         {/* Metric 1: Study Hours */}
-        <Card className="bg-zinc-900/40 border-zinc-800/80 p-4">
+        <Card className="p-4">
           <div className="flex items-center justify-between text-zinc-400 mb-2">
             <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">Study Hours</span>
             <Clock className="w-4 h-4 text-indigo-400" />
@@ -105,7 +99,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* Metric 2: Streak */}
-        <Card className="bg-zinc-900/40 border-zinc-800/80 p-4">
+        <Card className="p-4">
           <div className="flex items-center justify-between text-zinc-400 mb-2">
             <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">Current Streak</span>
             <Flame className="w-4 h-4 text-amber-500" />
@@ -118,7 +112,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* Metric 3: Roadmap Progress */}
-        <Card className="bg-zinc-900/40 border-zinc-800/80 p-4 flex items-center justify-between">
+        <Card className="p-4 flex items-center justify-between">
           <div>
             <div className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 mb-1">
               Curriculum Progress
@@ -130,7 +124,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* Metric 4: Papers Read */}
-        <Card className="bg-zinc-900/40 border-zinc-800/80 p-4">
+        <Card className="p-4">
           <div className="flex items-center justify-between text-zinc-400 mb-2">
             <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">Papers Deep-Read</span>
             <BookOpen className="w-4 h-4 text-emerald-400" />
@@ -143,7 +137,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* Metric 5: Spaced Repetition Queue */}
-        <Card className="bg-zinc-900/40 border-zinc-800/80 p-4">
+        <Card className="p-4">
           <div className="flex items-center justify-between text-zinc-400 mb-2">
             <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">Revision Queue</span>
             <Layers className="w-4 h-4 text-violet-400" />
@@ -183,10 +177,10 @@ export default function DashboardPage() {
                 <span>Estimated Target: <strong className="text-zinc-200">120 mins</strong></span>
                 <span>Energy Match: <strong className="text-emerald-400">Peak</strong></span>
               </div>
-              <Button size="sm" variant="primary" className="h-7 text-xs flex items-center space-x-1">
-                <Play className="w-3 h-3" />
-                <span>Execute Daily Plan</span>
-              </Button>
+                <Button size="sm" variant="primary" className="h-7 text-xs flex items-center space-x-1">
+                  <Play className="w-3 h-3" />
+                  <span>Execute Daily Plan</span>
+                </Button>
             </div>
           </Card>
 
@@ -203,68 +197,30 @@ export default function DashboardPage() {
             </div>
 
             <div className="space-y-2.5">
-              {/* Topic 1 */}
-              <div className="p-3 rounded-lg bg-zinc-900/60 border border-zinc-800/80 hover:border-zinc-700 transition-colors flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-6 h-6 rounded-full bg-amber-950/60 border border-amber-800/60 text-amber-300 flex items-center justify-center text-[10px] font-bold">
-                    1
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-semibold text-zinc-200">
-                      Multi-Head Attention vs MQA vs Grouped-Query Attention (GQA)
-                    </h4>
-                    <p className="text-[10px] text-zinc-400 mt-0.5">
-                      Phase 2: Transformer Architectures • 240 mins total (120 mins left)
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Badge variant="warning">In Progress</Badge>
-                  <Badge variant="secondary">Advanced</Badge>
-                </div>
-              </div>
-
-              {/* Topic 2 */}
-              <div className="p-3 rounded-lg bg-zinc-900/60 border border-zinc-800/80 hover:border-zinc-700 transition-colors flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-6 h-6 rounded-full bg-zinc-800 text-zinc-400 flex items-center justify-center text-[10px] font-bold">
-                    2
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-semibold text-zinc-200">
-                      Rotary Position Embeddings (RoPE) & YaRN Extrapolation
-                    </h4>
-                    <p className="text-[10px] text-zinc-400 mt-0.5">
-                      Phase 2: Transformer Architectures • 180 mins estimated
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Badge variant="outline">Not Started</Badge>
-                  <Badge variant="secondary">Advanced</Badge>
-                </div>
-              </div>
-
-              {/* Topic 3 */}
-              <div className="p-3 rounded-lg bg-zinc-900/60 border border-zinc-800/80 hover:border-zinc-700 transition-colors flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-6 h-6 rounded-full bg-zinc-800 text-zinc-400 flex items-center justify-center text-[10px] font-bold">
-                    3
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-semibold text-zinc-200">
-                      FlashAttention-1/2/3: Tiling, SRAM Constraints & Online Softmax
-                    </h4>
-                    <p className="text-[10px] text-zinc-400 mt-0.5">
-                      Phase 2: Transformer Architectures • 300 mins estimated
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Badge variant="outline">Not Started</Badge>
-                  <Badge variant="destructive">Expert</Badge>
-                </div>
-              </div>
+              <TopicTile
+                index={1}
+                title="Multi-Head Attention vs MQA vs Grouped-Query Attention (GQA)"
+                subtitle="Phase 2: Transformer Architectures • 240 mins total (120 mins left)"
+                minutes={120}
+                status="in-progress"
+                badges={[{ label: 'In Progress', variant: 'warning' }, { label: 'Advanced', variant: 'secondary' }]}
+              />
+              <TopicTile
+                index={2}
+                title="Rotary Position Embeddings (RoPE) & YaRN Extrapolation"
+                subtitle="Phase 2: Transformer Architectures • 180 mins estimated"
+                minutes={180}
+                status="not-started"
+                badges={[{ label: 'Not Started', variant: 'outline' }, { label: 'Advanced', variant: 'secondary' }]}
+              />
+              <TopicTile
+                index={3}
+                title="FlashAttention-1/2/3: Tiling, SRAM Constraints & Online Softmax"
+                subtitle="Phase 2: Transformer Architectures • 300 mins estimated"
+                minutes={300}
+                status="not-started"
+                badges={[{ label: 'Not Started', variant: 'outline' }, { label: 'Expert', variant: 'destructive' }]}
+              />
             </div>
           </Card>
         </div>
@@ -273,7 +229,10 @@ export default function DashboardPage() {
         <div className="space-y-5">
           {/* Heatmap Card */}
           <Card className="p-5">
-            <Heatmap days={heatmapData} />
+            <MiniCalendar />
+            <div className="mt-4">
+              <Heatmap days={heatmapData} />
+            </div>
           </Card>
 
           {/* Habit Routine Matrix */}
@@ -298,22 +257,16 @@ export default function DashboardPage() {
               ].map((h) => {
                 const done = habitStatus[h.id];
                 return (
-                  <div
+                  <Button
                     key={h.id}
+                    variant={done ? 'primary' : 'ghost'}
+                    size="sm"
                     onClick={() => toggleHabit(h.id)}
-                    className="flex items-center justify-between p-2 rounded-lg bg-zinc-900/50 hover:bg-zinc-800/50 border border-zinc-800/50 cursor-pointer transition-colors"
+                    className="w-full flex items-center justify-between px-3 py-2"
                   >
-                    <span className="text-xs text-zinc-300">{h.name}</span>
-                    <div
-                      className={`w-5 h-5 rounded-md flex items-center justify-center transition-colors ${
-                        done
-                          ? 'bg-emerald-600 text-white'
-                          : 'border border-zinc-700 bg-zinc-800 text-transparent hover:border-zinc-500'
-                      }`}
-                    >
-                      <Check className="w-3.5 h-3.5" />
-                    </div>
-                  </div>
+                    <span className="text-xs text-zinc-100">{h.name}</span>
+                    <span className="text-[11px] text-zinc-300">{done ? 'Done' : ''}</span>
+                  </Button>
                 );
               })}
             </div>
