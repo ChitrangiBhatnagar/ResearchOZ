@@ -204,6 +204,69 @@ pnpm --filter @research-os/desktop build
 
 ---
 
+## ResearchOS MCP (Cursor)
+
+ResearchOS exposes a local **stdio MCP server** so Cursor agents can read your roadmap, papers, knowledge graph, and habits from the same SQLite database as the desktop app.
+
+### Setup
+
+1. Import master data if you have not already:
+
+   ```bash
+   pnpm --filter @research-os/db import:master
+   ```
+
+2. Register the server in Cursor. Copy [`.cursor/mcp.json`](.cursor/mcp.json) or add this to your user MCP config:
+
+   ```json
+   {
+     "mcpServers": {
+       "researchos": {
+         "command": "pnpm",
+         "args": ["--filter", "@research-os/mcp", "exec", "tsx", "src/index.ts"],
+         "env": {
+           "DATABASE_PATH": "storage/researchos.db"
+         }
+       }
+     }
+   }
+   ```
+
+   Run from the monorepo root. `DATABASE_PATH` is resolved relative to the repo root via `@research-os/db` (same as the desktop app).
+
+3. Restart Cursor or reload MCP servers. Verify with prompts like:
+   - "List subjects in my roadmap"
+   - "Fetch NVIDIA transformer papers"
+   - "Show the knowledge graph summary"
+
+### Tools (v1)
+
+| Tool | Purpose |
+|------|---------|
+| `list_subjects` | Roadmap milestone / subject sheets |
+| `get_roadmap` | Full curriculum tree |
+| `search_topics` | Find topics by query, subject, status |
+| `list_papers` / `get_paper` | Research library |
+| `fetch_papers` | arXiv / NVIDIA ingest |
+| `get_knowledge_graph` | Nodes + edges |
+| `get_concept` | Node detail (notes, papers, edges) |
+| `rebuild_graph` | Refresh graph links |
+| `get_habits` / `toggle_habit` | Consistency matrix |
+
+### Resources
+
+Read-only JSON: `researchos://roadmap`, `researchos://papers`, `researchos://graph`
+
+### Manual run
+
+```bash
+pnpm --filter @research-os/mcp start
+```
+
+Logs go to stderr; stdout is reserved for JSON-RPC.
+
+---
+
 ## 📄 License
 
 MIT © [Chitrangi Bhatnagar](https://github.com/ChitrangiBhatnagar)

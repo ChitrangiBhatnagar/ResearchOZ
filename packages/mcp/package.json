@@ -1,0 +1,25 @@
+{
+  "name": "@research-os/mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ResearchOS MCP server — stdio tools over @research-os/db for Cursor agents",
+  "bin": {
+    "researchos-mcp": "./src/index.ts"
+  },
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@research-os/db": "workspace:*",
+    "@research-os/shared": "workspace:*",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

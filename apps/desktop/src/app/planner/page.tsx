@@ -5,23 +5,14 @@ import {
   Sparkles,
   Clock,
   Zap,
-  Play,
   CheckCircle2,
-  ArrowRight,
-  ChevronDown,
   Loader2,
 } from 'lucide-react';
 import {
   Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
   Button,
   Badge,
-  Input,
 } from '@research-os/ui';
-import { APP_CONFIG } from '@research-os/shared';
 
 type EnergyLevel = 'low' | 'medium' | 'high' | 'peak';
 
@@ -70,65 +61,21 @@ export default function PlannerPage() {
     setPlan(null);
 
     try {
-      const apiBase = `http://${APP_CONFIG.DEFAULT_API_HOST}:${APP_CONFIG.DEFAULT_API_PORT}`;
-      const res = await fetch(`${apiBase}/api/v1/planner/generate`, {
+      const res = await fetch('/api/planner/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           available_minutes: availableMinutes,
           energy_level: energyLevel,
         }),
-        signal: AbortSignal.timeout(5000),
       });
 
       if (!res.ok) throw new Error(`API error: ${res.status}`);
       const data = await res.json();
       if (data.success) setPlan(data.data);
       else throw new Error(data.error?.message || 'Planner returned no plan');
-    } catch {
-      // In development fallback — generate plan client-side
-      const fallbackItems: PlanItem[] = energyLevel === 'high' || energyLevel === 'peak'
-        ? [
-            {
-              topic_id: 'topic-ms-transformers-1',
-              topic_title: 'Multi-Head Attention vs MQA vs Grouped-Query Attention (GQA)',
-              milestone_title: 'Phase 2: Transformer Architectures',
-              recommended_order: 1,
-              estimated_minutes: Math.min(60, availableMinutes),
-              priority: 'must_do',
-              reasoning: `High-cognitive foundational topic matched to your ${energyLevel} energy state. GQA is a core inference optimization concept.`,
-            },
-            ...(availableMinutes >= 90 ? [{
-              topic_id: 'topic-ms-cuda-1',
-              topic_title: 'NVIDIA GPU Architecture: SMs, Warps, Shared Memory & Tensor Cores',
-              milestone_title: 'Phase 4: CUDA & GPU Programming',
-              recommended_order: 2,
-              estimated_minutes: Math.min(60, availableMinutes - 60),
-              priority: 'should_do' as const,
-              reasoning: 'Hardware comprehension unlocks understanding of FlashAttention tiling and Triton kernel performance targets.',
-            }] : []),
-          ]
-        : [
-            {
-              topic_id: 'topic-ms-foundations-4',
-              topic_title: 'Weight Initialization & LayerNorm vs RMSNorm Mechanics',
-              milestone_title: 'Phase 1: Deep Learning Foundations',
-              recommended_order: 1,
-              estimated_minutes: Math.min(45, availableMinutes),
-              priority: 'must_do',
-              reasoning: 'Medium-difficulty conceptual review ideal for lower energy states. High return on investment for transformer training stability.',
-            },
-          ];
-
-      setPlan({
-        plan_date: new Date().toISOString().split('T')[0]!,
-        available_minutes: availableMinutes,
-        target_energy_level: energyLevel,
-        focus_suggestion: energyLevel === 'peak'
-          ? 'Start with the hardest derivation first while cognitive bandwidth is maximal. Avoid context switching for at least 90 minutes.'
-          : 'Use the Pomodoro method — 25 mins focused study, 5 mins break. Review notes from the previous session first.',
-        items: fallbackItems,
-      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to generate plan');
     } finally {
       setIsGenerating(false);
     }
@@ -219,7 +166,7 @@ export default function PlannerPage() {
           <Button
             variant="primary"
             className="w-full h-9 text-sm font-semibold flex items-center justify-center space-x-2"
-            onClick={generatePlan}
+            onClick={() => void generatePlan()}
             disabled={isGenerating}
           >
             {isGenerating ? (
@@ -236,6 +183,10 @@ export default function PlannerPage() {
           </Button>
         </div>
       </Card>
+
+      {error && (
+        <p className="text-xs text-destructive text-center">{error}</p>
+      )}
 
       {/* Generated Plan */}
       {plan && (

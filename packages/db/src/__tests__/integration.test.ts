@@ -1,12 +1,12 @@
 import * as XLSX from 'xlsx';
 import path from 'node:path';
 import fs from 'node:fs';
-import { getDatabase, closeDatabase } from '../client.js';
-import { roadmaps, milestones, topics } from '../schema/roadmap.js';
-import { habits, habitLogs } from '../schema/habits.js';
-import { flashcards } from '../schema/flashcards.js';
-import { knowledgeNodes } from '../schema/graph.js';
-import { importRoadmapFromExcel } from '../importers/excel-importer.js';
+import { getDatabase, closeDatabase } from '../client';
+import { roadmaps, milestones, topics } from '../schema/roadmap';
+import { habits, habitLogs } from '../schema/habits';
+import { flashcards } from '../schema/flashcards';
+import { knowledgeNodes } from '../schema/graph';
+import { importRoadmapFromExcel } from '../importers/excel-importer';
 import { calculateSM2NextReview, createLogger } from '@research-os/shared';
 import { eq } from 'drizzle-orm';
 

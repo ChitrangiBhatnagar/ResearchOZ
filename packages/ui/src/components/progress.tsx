@@ -19,14 +19,14 @@ export function Progress({
   return (
     <div
       className={cn(
-        'relative h-1.5 w-full overflow-hidden rounded-full bg-zinc-800/80',
+        'relative h-1.5 w-full overflow-hidden rounded-full bg-muted',
         className
       )}
       {...props}
     >
       <div
         className={cn(
-          'h-full w-full flex-1 bg-indigo-500 transition-all duration-300 ease-in-out',
+          'h-full w-full flex-1 bg-primary transition-all duration-300 ease-in-out',
           indicatorClassName
         )}
         style={{ transform: `translateX(-${100 - percentage}%)` }}
@@ -40,7 +40,7 @@ export function ProgressRing({
   size = 40,
   strokeWidth = 3.5,
   className,
-  colorClass = 'text-indigo-500',
+  colorClass = 'text-primary',
 }: {
   value: number;
   size?: number;

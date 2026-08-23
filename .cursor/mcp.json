@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "researchos": {
+      "command": "pnpm",
+      "args": ["--filter", "@research-os/mcp", "exec", "tsx", "src/index.ts"],
+      "env": {
+        "DATABASE_PATH": "storage/researchos.db"
+      }
+    }
+  }
+}

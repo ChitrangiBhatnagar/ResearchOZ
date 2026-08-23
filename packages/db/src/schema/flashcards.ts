@@ -1,6 +1,6 @@
 import { sqliteTable, text, integer, real, index } from 'drizzle-orm/sqlite-core';
-import { topics } from './roadmap.js';
-import { papers } from './research.js';
+import { topics } from './roadmap';
+import { papers } from './research';
 
 export const flashcards = sqliteTable(
   'flashcards',

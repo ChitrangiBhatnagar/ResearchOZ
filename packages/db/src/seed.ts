@@ -1,9 +1,9 @@
-import { getDatabase, closeDatabase, getRawClient } from './client.js';
-import { roadmaps, milestones, topics } from './schema/roadmap.js';
-import { habits, habitLogs } from './schema/habits.js';
-import { studySessions } from './schema/sessions.js';
-import { flashcards } from './schema/flashcards.js';
-import { knowledgeNodes, knowledgeEdges } from './schema/graph.js';
+import { getDatabase, closeDatabase, getRawClient } from './client';
+import { roadmaps, milestones, topics } from './schema/roadmap';
+import { habits, habitLogs } from './schema/habits';
+import { studySessions } from './schema/sessions';
+import { flashcards } from './schema/flashcards';
+import { knowledgeNodes, knowledgeEdges } from './schema/graph';
 import { DEFAULT_HABITS, createLogger, formatDateToYYYYMMDD } from '@research-os/shared';
 import crypto from 'node:crypto';
 

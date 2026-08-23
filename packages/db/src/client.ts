@@ -1,6 +1,6 @@
 import { createClient, Client } from '@libsql/client';
 import { drizzle, LibSQLDatabase } from 'drizzle-orm/libsql';
-import * as schema from './schema/index.js';
+import * as schema from './schema/index';
 import { createLogger, APP_CONFIG } from '@research-os/shared';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -9,14 +9,41 @@ const logger = createLogger('DatabaseClient');
 
 let dbInstance: LibSQLDatabase<typeof schema> | null = null;
 let rawClient: Client | null = null;
+let initPromise: Promise<void> | null = null;
+
+/** Resolve monorepo root so `storage/researchos.db` is stable from any package cwd. */
+export function resolveRepoRoot(startDir = process.cwd()): string {
+  let dir = path.resolve(startDir);
+  for (let i = 0; i < 8; i++) {
+    if (
+      fs.existsSync(path.join(dir, 'pnpm-workspace.yaml')) ||
+      fs.existsSync(path.join(dir, 'storage', 'AI_Engineer_Tracker_-_Master__Phases_1-3_.xlsx'))
+    ) {
+      return dir;
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return path.resolve(startDir);
+}
+
+export function resolveDatabasePath(dbPath?: string): string {
+  if (dbPath && path.isAbsolute(dbPath)) return dbPath;
+  if (process.env.DATABASE_PATH && path.isAbsolute(process.env.DATABASE_PATH)) {
+    return process.env.DATABASE_PATH;
+  }
+  const root = resolveRepoRoot();
+  const relative = dbPath || process.env.DATABASE_PATH || APP_CONFIG.DEFAULT_DB_FILE;
+  return path.isAbsolute(relative) ? relative : path.join(root, relative);
+}
 
 export function getDatabase(dbPath?: string): LibSQLDatabase<typeof schema> {
   if (dbInstance) {
     return dbInstance;
   }
 
-  const rawPath = dbPath || process.env.DATABASE_PATH || APP_CONFIG.DEFAULT_DB_FILE;
-  const resolvedPath = path.isAbsolute(rawPath) ? rawPath : path.resolve(process.cwd(), rawPath);
+  const resolvedPath = resolveDatabasePath(dbPath);
   const dir = path.dirname(resolvedPath);
 
   if (!fs.existsSync(dir)) {
@@ -24,7 +51,6 @@ export function getDatabase(dbPath?: string): LibSQLDatabase<typeof schema> {
     logger.info('Created database storage directory', { dir });
   }
 
-  // Format file URL for LibSQL local driver
   const fileUrl = `file:${resolvedPath.replace(/\\/g, '/')}`;
   logger.info('Initializing SQLite database connection via LibSQL', { fileUrl });
 
@@ -32,10 +58,18 @@ export function getDatabase(dbPath?: string): LibSQLDatabase<typeof schema> {
     url: fileUrl,
   });
 
-  initDatabaseTables(rawClient);
+  initPromise = initDatabaseTables(rawClient);
 
   dbInstance = drizzle(rawClient, { schema });
   return dbInstance;
+}
+
+export async function ensureDatabaseReady(dbPath?: string): Promise<LibSQLDatabase<typeof schema>> {
+  const db = getDatabase(dbPath);
+  if (initPromise) {
+    await initPromise;
+  }
+  return db;
 }
 
 export function getRawClient(): Client {
@@ -50,12 +84,12 @@ export function closeDatabase(): void {
     rawClient.close();
     rawClient = null;
     dbInstance = null;
+    initPromise = null;
     logger.info('SQLite database connection closed');
   }
 }
 
-function initDatabaseTables(client: Client): void {
-  // Execute table definitions
+async function initDatabaseTables(client: Client): Promise<void> {
   const statements = [
     `CREATE TABLE IF NOT EXISTS roadmaps (
       id TEXT PRIMARY KEY,
@@ -218,12 +252,14 @@ function initDatabaseTables(client: Client): void {
       weight REAL NOT NULL DEFAULT 1.0,
       description TEXT,
       created_at TEXT NOT NULL
-    );`
+    );`,
   ];
 
   for (const sql of statements) {
-    client.execute(sql).catch((err) => {
-      logger.error('Failed to execute init table statement', err);
-    });
+    try {
+      await client.execute(sql);
+    } catch (err) {
+      logger.error('Failed to execute init table statement', err as Error);
+    }
   }
 }

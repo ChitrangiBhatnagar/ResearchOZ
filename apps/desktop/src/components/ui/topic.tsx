@@ -11,26 +11,47 @@ interface TopicProps {
   badges?: { label: string; variant?: string }[]
 }
 
-export function TopicTile({ index, title, subtitle, minutes, status = 'not-started' }: TopicProps) {
-  const statusColor = status === 'in-progress' ? 'bg-amber-500' : status === 'done' ? 'bg-emerald-500' : 'bg-zinc-700'
+export function TopicTile({
+  index,
+  title,
+  subtitle,
+  minutes,
+  status = 'not-started',
+  badges,
+}: TopicProps) {
+  const statusColor =
+    status === 'in-progress' ? 'bg-primary' : status === 'done' ? 'bg-emerald-500' : 'bg-muted-foreground/40'
+
   return (
-    <div className={cn('flex items-center justify-between rounded-lg p-3 transition-colors bg-zinc-900/50 border border-zinc-800/50 hover:border-zinc-700')}>
-      <div className="flex items-center space-x-3">
-        <div className="w-7 h-7 rounded-full flex items-center justify-center bg-zinc-800 text-zinc-200 font-semibold">{index}</div>
-        <div>
-          <div className="text-xs font-semibold text-zinc-100">{title}</div>
-          {subtitle && <div className="text-[10px] text-zinc-400 mt-0.5">{subtitle}</div>}
+    <div
+      className={cn(
+        'flex items-center justify-between rounded-xl p-3 transition-colors bg-muted/30 border border-border/70 hover:border-border hover:bg-muted/45'
+      )}
+    >
+      <div className="flex items-center space-x-3 min-w-0">
+        <div className="w-7 h-7 shrink-0 rounded-full flex items-center justify-center bg-secondary text-secondary-foreground text-xs font-semibold">
+          {index}
+        </div>
+        <div className="min-w-0">
+          <div className="text-xs font-semibold text-foreground truncate">{title}</div>
+          {subtitle && (
+            <div className="text-[10px] text-muted-foreground mt-0.5 truncate">{subtitle}</div>
+          )}
         </div>
       </div>
 
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center space-x-2 shrink-0 pl-3">
         {typeof minutes === 'number' && (
-          <div className="text-[10px] text-zinc-400">{minutes} mins</div>
+          <div className="text-[10px] text-muted-foreground">{minutes} mins</div>
         )}
         {badges && (
           <div className="flex items-center space-x-2">
             {badges.map((b) => (
-              <Badge key={b.label} variant={(b.variant as any) || 'outline'} className="text-[10px]">
+              <Badge
+                key={b.label}
+                variant={(b.variant as any) || 'outline'}
+                className="text-[10px]"
+              >
                 {b.label}
               </Badge>
             ))}

@@ -3,102 +3,98 @@
 import * as React from 'react';
 import {
   Layers,
-  Sparkles,
   RotateCcw,
   CheckCircle2,
-  Code,
-  ArrowRight,
 } from 'lucide-react';
 import {
   Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
   Button,
   Badge,
 } from '@research-os/ui';
-import { calculateSM2NextReview } from '@research-os/shared';
 
 interface CardItem {
   id: string;
   topic: string;
   question: string;
   answer: string;
-  codeSnippet?: string;
+  codeSnippet?: string | null;
   repetitions: number;
   intervalDays: number;
   easeFactor: number;
 }
 
-const INITIAL_DECK: CardItem[] = [
-  {
-    id: 'c-1',
-    topic: 'Transformer Mechanics',
-    question: 'What is the primary memory bandwidth advantage of Grouped-Query Attention (GQA) over Multi-Head Attention (MHA) during autoregressive generation?',
-    answer: 'In autoregressive generation, memory bandwidth to HBM is the bottleneck. MHA requires loading independent Key and Value heads for every Query head. GQA clusters multiple Query heads to share a single Key-Value head, drastically reducing KV cache size and memory traffic by a factor of (H_q / H_kv).',
-    codeSnippet: '# GQA Shape Transformation\n# Q: (B, S, num_heads, head_dim)\n# K, V: (B, S, num_kv_heads, head_dim) where num_kv_heads << num_heads',
-    repetitions: 2,
-    intervalDays: 3,
-    easeFactor: 2.5,
-  },
-  {
-    id: 'c-2',
-    topic: 'GPU Architecture',
-    question: 'Why does FlashAttention compute softmax online using tiling instead of materializing the full (N x N) attention matrix?',
-    answer: 'GPU High Bandwidth Memory (HBM) is slow compared to on-chip SRAM (~19TB/s vs ~2TB/s). Materializing the (N x N) matrix incurs O(N^2) memory reads/writes to HBM. By computing softmax incrementally in SRAM tiles using the online normalizer trick, FlashAttention achieves O(N) HBM memory traffic.',
-    codeSnippet: 'm_new = max(m_prev, row_max(S_tile))\nl_new = exp(m_prev - m_new) * l_prev + row_sum(exp(S_tile - m_new))',
-    repetitions: 1,
-    intervalDays: 1,
-    easeFactor: 2.5,
-  },
-];
-
 export default function FlashcardsPage() {
-  const [deck, setDeck] = React.useState<CardItem[]>(INITIAL_DECK);
+  const [deck, setDeck] = React.useState<CardItem[]>([]);
   const [currentIndex, setCurrentIndex] = React.useState(0);
   const [isRevealed, setIsRevealed] = React.useState(false);
   const [completedCount, setCompletedCount] = React.useState(0);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const load = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/flashcards');
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to load flashcards');
+      setDeck(json.cards || []);
+      setCurrentIndex(0);
+      setIsRevealed(false);
+      setCompletedCount(0);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    void load();
+  }, [load]);
 
   const currentCard = deck[currentIndex];
 
-  const handleRate = (rating: number) => {
+  const handleRate = async (rating: number) => {
     if (!currentCard) return;
 
-    const sm2Result = calculateSM2NextReview(
-      rating,
-      currentCard.repetitions,
-      currentCard.intervalDays,
-      currentCard.easeFactor
-    );
-
-    console.log(`SM-2 Updated for card ${currentCard.id}:`, sm2Result);
+    await fetch('/api/flashcards', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cardId: currentCard.id, rating }),
+    });
 
     setCompletedCount((c) => c + 1);
     setIsRevealed(false);
     if (currentIndex < deck.length - 1) {
       setCurrentIndex((i) => i + 1);
     } else {
-      setCurrentIndex(deck.length); // Deck finished
+      setCurrentIndex(deck.length);
     }
   };
 
   const isDeckFinished = currentIndex >= deck.length;
 
+  if (loading) {
+    return (
+      <div className="py-20 text-center text-sm text-muted-foreground">Loading flashcards from database…</div>
+    );
+  }
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto pb-12">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-zinc-100 tracking-tight">
             Active Recall & Spaced Repetition (SM-2)
           </h1>
           <p className="text-xs text-zinc-400 mt-0.5">
-            Retention algorithm optimizes neural recall intervals before memory decay
+            Due cards from SQLite — ratings persist intervals locally
           </p>
+          {error && <p className="text-xs text-destructive mt-1">{error}</p>}
         </div>
         <Badge variant="indigo">
-          {isDeckFinished ? 'Deck Completed' : `Card ${currentIndex + 1} of ${deck.length}`}
+          {isDeckFinished ? 'Deck Completed' : deck.length === 0 ? 'No cards due' : `Card ${currentIndex + 1} of ${deck.length}`}
         </Badge>
       </div>
 
@@ -145,36 +141,16 @@ export default function FlashcardsPage() {
                 </Button>
               ) : (
                 <div className="grid grid-cols-4 gap-2">
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="text-[11px]"
-                    onClick={() => handleRate(1)}
-                  >
+                  <Button variant="destructive" size="sm" className="text-[11px]" onClick={() => void handleRate(1)}>
                     1 - Blackout (&lt;1d)
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-[11px] border-zinc-800 text-zinc-300"
-                    onClick={() => handleRate(3)}
-                  >
+                  <Button variant="outline" size="sm" className="text-[11px] border-zinc-800 text-zinc-300" onClick={() => void handleRate(3)}>
                     3 - Hard (2d)
                   </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="text-[11px]"
-                    onClick={() => handleRate(4)}
-                  >
+                  <Button variant="secondary" size="sm" className="text-[11px]" onClick={() => void handleRate(4)}>
                     4 - Good (4d)
                   </Button>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    className="text-[11px]"
-                    onClick={() => handleRate(5)}
-                  >
+                  <Button variant="primary" size="sm" className="text-[11px]" onClick={() => void handleRate(5)}>
                     5 - Perfect (6d)
                   </Button>
                 </div>
@@ -187,22 +163,17 @@ export default function FlashcardsPage() {
           <div className="w-12 h-12 rounded-full bg-emerald-950/60 text-emerald-400 border border-emerald-800/40 flex items-center justify-center mx-auto">
             <CheckCircle2 className="w-6 h-6" />
           </div>
-          <h2 className="text-base font-bold text-zinc-100">Review Deck Finished!</h2>
+          <h2 className="text-base font-bold text-zinc-100">
+            {deck.length === 0 ? 'No Flashcards Due' : 'Review Deck Finished!'}
+          </h2>
           <p className="text-xs text-zinc-400 max-w-sm mx-auto">
-            You reviewed {completedCount} flashcards. Intervals have been updated in your local SQLite store.
+            {deck.length === 0
+              ? 'Fetch papers from the Research Hub or run db seed to generate cards.'
+              : `You reviewed ${completedCount} flashcards. Intervals updated in SQLite.`}
           </p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setCurrentIndex(0);
-              setIsRevealed(false);
-              setCompletedCount(0);
-            }}
-            className="text-xs border-zinc-800 text-zinc-300"
-          >
+          <Button variant="outline" size="sm" onClick={() => void load()} className="text-xs border-zinc-800 text-zinc-300">
             <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
-            Review Deck Again
+            {deck.length === 0 ? 'Reload Deck' : 'Review Again'}
           </Button>
         </Card>
       )}

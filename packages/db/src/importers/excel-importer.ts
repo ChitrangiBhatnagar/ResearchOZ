@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx';
-import { getDatabase } from '../client.js';
-import { roadmaps, milestones, topics } from '../schema/roadmap.js';
+import { getDatabase } from '../client';
+import { roadmaps, milestones, topics } from '../schema/roadmap';
 import { createLogger } from '@research-os/shared';
 import crypto from 'node:crypto';
 

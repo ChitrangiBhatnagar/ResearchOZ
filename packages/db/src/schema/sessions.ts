@@ -1,5 +1,5 @@
 import { sqliteTable, text, integer, index } from 'drizzle-orm/sqlite-core';
-import { topics } from './roadmap.js';
+import { topics } from './roadmap';
 
 export const studySessions = sqliteTable(
   'study_sessions',

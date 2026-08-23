@@ -8,13 +8,14 @@ import { CommandPalette } from '@research-os/ui';
 import { useRouter } from 'next/navigation';
 import type { CommandPaletteAction } from '@research-os/types';
 import { ExcelImportModal } from '../components/excel-import-modal';
-import { Instrument_Sans, Montserrat } from "next/font/google";
-import { cn } from "@/lib/utils";
+import { Noto_Sans } from 'next/font/google';
+import { cn } from '@/lib/utils';
 
-const montserratHeading = Montserrat({subsets:['latin'],variable:'--font-heading'});
-
-const instrumentSans = Instrument_Sans({subsets:['latin'],variable:'--font-sans'});
-
+const notoSans = Noto_Sans({
+  subsets: ['latin'],
+  variable: '--font-sans',
+  weight: ['400', '500', '600', '700'],
+});
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -76,17 +77,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   );
 
   return (
-    <html lang="en" className={cn("dark", "font-sans", instrumentSans.variable, montserratHeading.variable)}>
-      <body className="bg-zinc-950 text-zinc-100 antialiased flex h-screen overflow-hidden font-sans">
-        <div className="flex-1 flex items-stretch p-6">
-          <div className="w-full rounded-3xl border border-zinc-800/60 bg-zinc-900/30 p-1 shadow-2xl overflow-hidden">
-            <div className="flex h-full min-h-0">
+    <html lang="en" className={cn('dark', 'font-sans', notoSans.variable)}>
+      <body className="bg-background text-foreground antialiased flex h-screen overflow-hidden font-sans">
+        <div className="flex-1 flex items-stretch p-5">
+          <div className="w-full rounded-3xl border border-border/70 bg-card/40 p-1 shadow-2xl overflow-hidden backdrop-blur-sm">
+            <div className="flex h-full min-h-0 rounded-[1.35rem] overflow-hidden bg-background">
               <AppSidebar />
-              <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden rounded-2xl bg-zinc-950/50">
+              <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
                 <Header onOpenCommandPalette={() => setCommandPaletteOpen(true)} />
-                <main className="flex-1 overflow-y-auto p-6 scrollbar-none">
-                  {children}
-                </main>
+                <main className="flex-1 overflow-y-auto p-6 scrollbar-none">{children}</main>
               </div>
             </div>
           </div>
@@ -98,10 +97,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           actions={actions}
         />
 
-        <ExcelImportModal
-          open={excelModalOpen}
-          onOpenChange={setExcelModalOpen}
-        />
+        <ExcelImportModal open={excelModalOpen} onOpenChange={setExcelModalOpen} />
       </body>
     </html>
   );

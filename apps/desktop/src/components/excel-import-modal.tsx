@@ -49,16 +49,21 @@ export function ExcelImportModal({
           setStatusMessage(res?.error || 'Failed to import curriculum spreadsheet.');
         }
       } else {
-        // Fallback for standalone web development mode
-        setStatusMessage('Simulating curriculum ingestion in web mode...');
+        // Web / Next.js: import the master workbook from storage/
+        setStatusMessage('Importing master workbook from storage/…');
+        const res = await fetch('/api/curriculum/import', { method: 'POST' });
+        const json = await res.json();
+        if (!res.ok || !json.ok) {
+          throw new Error(json.error || json.detail || 'Master workbook import failed');
+        }
+        setIsSuccess(true);
+        setStatusMessage(
+          `Imported ${json.topicsCount} topics across ${json.milestonesCount} milestones and ${json.papersCount} papers.`
+        );
         setTimeout(() => {
-          setIsSuccess(true);
-          setStatusMessage('Imported 16 topics across 4 milestones successfully!');
-          setTimeout(() => {
-            onOpenChange(false);
-            onImportComplete?.();
-          }, 1200);
-        }, 800);
+          onOpenChange(false);
+          onImportComplete?.();
+        }, 1400);
       }
     } catch (err) {
       setIsSuccess(false);

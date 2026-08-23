@@ -1,6 +1,6 @@
 import { sqliteTable, text, real, index } from 'drizzle-orm/sqlite-core';
-import { papers } from './research.js';
-import { topics } from './roadmap.js';
+import { papers } from './research';
+import { topics } from './roadmap';
 
 export const knowledgeNodes = sqliteTable(
   'knowledge_nodes',
