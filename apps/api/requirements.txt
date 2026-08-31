@@ -8,3 +8,5 @@ langgraph>=0.2.50
 langchain-core>=0.3.20
 python-multipart>=0.0.12
 numpy>=2.1.0
+psutil>=6.0.0
+langchain-core>=0.3.20

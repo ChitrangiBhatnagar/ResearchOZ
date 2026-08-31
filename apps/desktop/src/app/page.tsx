@@ -187,10 +187,10 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-10">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground tracking-tight">
+    <div className="space-y-6 w-full max-w-7xl mx-auto pb-10 min-w-0">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 min-w-0">
+        <div className="min-w-0">
+          <h1 className="text-xl font-semibold text-foreground tracking-tight truncate">
             {data?.roadmap?.title || 'Executive Study Dashboard'}
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -198,7 +198,7 @@ export default function DashboardPage() {
             <span className="text-foreground/80">Master Phases 1–3 workbook</span>
           </p>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           <Button
             variant="outline"
             size="sm"
@@ -224,7 +224,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3.5 min-w-0">
         <Card className="p-4">
           <div className="flex items-center justify-between text-muted-foreground mb-2">
             <span className="text-[11px] font-medium uppercase tracking-wider">Estimated Hours</span>
@@ -307,9 +307,9 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <div className="lg:col-span-2 space-y-5">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 min-w-0">
+        <div className="xl:col-span-2 space-y-5 min-w-0">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 min-w-0">
             <Card className="p-5 flex flex-col">
               <div className="mb-4">
                 <h3 className="text-sm font-semibold">Milestone Progress</h3>
@@ -486,10 +486,19 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        <div className="space-y-5">
-          <Card className="p-5">
-            <MiniCalendar />
-            <div className="mt-4">
+        <div className="space-y-5 min-w-0">
+          <Card className="p-5 overflow-hidden">
+            <MiniCalendar
+              inProgress={stats?.inProgressTopics || 0}
+              finished={stats?.completedTopics || 0}
+              waiting={Math.max(
+                0,
+                (stats?.totalTopics || 0) -
+                  (stats?.completedTopics || 0) -
+                  (stats?.inProgressTopics || 0)
+              )}
+            />
+            <div className="mt-4 overflow-x-auto">
               <Heatmap days={heatmapData} />
             </div>
           </Card>

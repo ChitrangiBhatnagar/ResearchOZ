@@ -81,7 +81,7 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
-    overflow-x: hidden;
+    overflow: hidden;
     user-select: none;
   }
 
@@ -101,10 +101,10 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: oklch(1 0 0 / 12%);
+  background: color-mix(in oklch, var(--foreground) 18%, transparent);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: oklch(1 0 0 / 20%);
+  background: color-mix(in oklch, var(--foreground) 28%, transparent);
 }

@@ -151,10 +151,10 @@ export default function RoadmapPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">
+    <div className="space-y-6 w-full max-w-7xl mx-auto pb-12 min-w-0">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 min-w-0">
+        <div className="min-w-0">
+          <h1 className="text-xl font-semibold tracking-tight truncate">
             {roadmap?.title || 'Curriculum Roadmap Explorer'}
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -167,7 +167,7 @@ export default function RoadmapPage() {
           variant="outline"
           size="sm"
           onClick={() => void syncWorkbook()}
-          className="text-xs flex items-center space-x-1.5"
+          className="text-xs flex items-center space-x-1.5 shrink-0 self-start"
           disabled={syncing}
         >
           {syncing ? (
@@ -175,7 +175,9 @@ export default function RoadmapPage() {
           ) : (
             <FileSpreadsheet className="w-3.5 h-3.5 text-primary" />
           )}
-          <span>{syncing ? 'Syncing workbook…' : 'Re-sync Master Excel'}</span>
+          <span className="whitespace-nowrap">
+            {syncing ? 'Syncing workbook…' : 'Re-sync Master Excel'}
+          </span>
         </Button>
       </div>
 
@@ -237,9 +239,9 @@ export default function RoadmapPage() {
             <Card key={milestone.id} className="overflow-hidden p-0">
               <div
                 onClick={() => toggleMilestone(milestone.id)}
-                className="p-4 flex items-center justify-between cursor-pointer hover:bg-muted/40 transition-colors border-b border-border/60 select-none"
+                className="p-4 flex items-center justify-between gap-3 cursor-pointer hover:bg-muted/40 transition-colors border-b border-border/60 select-none min-w-0"
               >
-                <div className="flex items-center space-x-3 min-w-0">
+                <div className="flex items-center space-x-3 min-w-0 flex-1">
                   {isCollapsed ? (
                     <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
                   ) : (
@@ -253,9 +255,9 @@ export default function RoadmapPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-3 shrink-0">
+                <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
                   <span className="text-[11px] font-mono text-muted-foreground">{mPct}%</span>
-                  <div className="w-20">
+                  <div className="w-14 sm:w-20">
                     <Progress value={mPct} />
                   </div>
                 </div>
@@ -270,7 +272,7 @@ export default function RoadmapPage() {
                     return (
                       <div
                         key={topic.id}
-                        className="p-3.5 px-5 flex items-center justify-between hover:bg-muted/30 transition-colors gap-3"
+                        className="p-3.5 px-3 sm:px-5 flex flex-col sm:flex-row sm:items-center sm:justify-between hover:bg-muted/30 transition-colors gap-2 sm:gap-3 min-w-0"
                       >
                         <div className="flex items-center space-x-3.5 flex-1 min-w-0">
                           <button
@@ -287,25 +289,25 @@ export default function RoadmapPage() {
                           </button>
                           <div className="min-w-0">
                             <h4
-                              className={`text-xs font-medium ${
+                              className={`text-xs font-medium truncate ${
                                 isDone ? 'text-muted-foreground line-through' : ''
                               }`}
                             >
                               {topic.title}
                             </h4>
-                            <div className="flex items-center space-x-2 text-[10px] text-muted-foreground mt-0.5">
-                              <span className="flex items-center">
+                            <div className="flex items-center space-x-2 text-[10px] text-muted-foreground mt-0.5 min-w-0">
+                              <span className="flex items-center shrink-0">
                                 <Clock className="w-3 h-3 mr-1" />
                                 {topic.estimatedMinutes}m est.
                               </span>
                               {topic.description && (
-                                <span className="truncate max-w-[28rem]">· {topic.description}</span>
+                                <span className="truncate min-w-0">· {topic.description}</span>
                               )}
                             </div>
                           </div>
                         </div>
 
-                        <div className="flex items-center space-x-2 shrink-0">
+                        <div className="flex items-center space-x-2 shrink-0 pl-8 sm:pl-0">
                           <Badge
                             variant={
                               topic.difficulty === 'beginner'

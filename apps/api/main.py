@@ -8,6 +8,9 @@ from fastapi.responses import JSONResponse
 from routers.health import router as health_router
 from routers.planner import router as planner_router
 from routers.research import router as research_router
+from routers.papers import router as papers_router
+from routers.agent import router as agent_router
+from routers.search import router as search_router
 
 # Configure structured logging
 logging.basicConfig(
@@ -36,6 +39,9 @@ app.add_middleware(
 app.include_router(health_router, prefix="/api/v1")
 app.include_router(planner_router, prefix="/api/v1")
 app.include_router(research_router, prefix="/api/v1")
+app.include_router(papers_router, prefix="/api/v1")
+app.include_router(agent_router, prefix="/api/v1")
+app.include_router(search_router, prefix="/api/v1")
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):

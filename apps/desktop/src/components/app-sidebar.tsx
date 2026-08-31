@@ -13,6 +13,7 @@ import {
   Database,
   Cpu,
   Network,
+  Settings,
 } from 'lucide-react';
 import { Badge } from '@research-os/ui';
 import { cn } from '@/lib/utils';
@@ -24,13 +25,14 @@ const NAV_ITEMS = [
   { href: '/habits', label: 'Habits & Routine', icon: Activity },
   { href: '/research', label: 'Research Hub', icon: BookOpen },
   { href: '/flashcards', label: 'Flashcards', icon: Layers },
+  { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
 export function AppSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-56 shrink-0 h-screen bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col justify-between select-none">
+    <aside className="flex w-44 sm:w-52 lg:w-56 shrink-0 h-full min-h-0 bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex-col justify-between select-none overflow-hidden">
       <div className="p-4 space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2.5">
