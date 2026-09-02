@@ -1,4 +1,4 @@
-import { eq, or } from 'drizzle-orm';
+import { eq, inArray, or } from 'drizzle-orm';
 import { ensureDatabaseReady } from '../client';
 import { knowledgeEdges, knowledgeNodes } from '../schema/graph';
 import { papers } from '../schema/research';
@@ -72,11 +72,13 @@ export async function getGraphNodeDetail(id: string) {
     .from(knowledgeEdges)
     .where(or(eq(knowledgeEdges.sourceNodeId, id), eq(knowledgeEdges.targetNodeId, id)));
 
-  const otherIds = relatedEdges.map((e) => (e.sourceNodeId === id ? e.targetNodeId : e.sourceNodeId));
+  const otherIds = [
+    ...new Set(relatedEdges.map((e) => (e.sourceNodeId === id ? e.targetNodeId : e.sourceNodeId))),
+  ];
   const others =
     otherIds.length === 0
       ? []
-      : await db.select().from(knowledgeNodes);
+      : await db.select().from(knowledgeNodes).where(inArray(knowledgeNodes.id, otherIds));
 
   const otherById = new Map(others.map((n) => [n.id, n]));
 
@@ -101,16 +103,18 @@ export async function getGraphNodeDetail(id: string) {
       : null;
   }
 
-  const linkedPaperIds = others
-    .filter((n) => otherIds.includes(n.id) && n.sourcePaperId)
-    .map((n) => n.sourcePaperId!);
+  const linkedPaperIds = [
+    ...new Set(others.filter((n) => n.sourcePaperId).map((n) => n.sourcePaperId!)),
+  ];
   const linkedPapers =
     linkedPaperIds.length === 0
       ? []
-      : (await db.select().from(papers)).filter((p) => linkedPaperIds.includes(p.id));
+      : await db.select().from(papers).where(inArray(papers.id, linkedPaperIds));
 
   const implementations = others
-    .filter((n) => otherIds.includes(n.id) && (n.nodeType === 'technique' || n.nodeType === 'algorithm' || n.sourceTopicId))
+    .filter(
+      (n) => n.nodeType === 'technique' || n.nodeType === 'algorithm' || Boolean(n.sourceTopicId)
+    )
     .slice(0, 12);
 
   const projects: string[] = [];

@@ -57,6 +57,10 @@ export type CurriculumPaper = {
   publishedDate: string;
   status: string;
   arxivId: string | null;
+  pdfUrl?: string | null;
+  summaryMarkdown?: string | null;
+  keyContributions?: string[];
+  source?: string;
 };
 
 export type DashboardPayload = {
@@ -183,10 +187,17 @@ export async function getPaperById(id: string): Promise<CurriculumPaper | null> 
   const [p] = await db.select().from(papers).where(eq(papers.id, id)).limit(1);
   if (!p) return null;
   let authors: string[] = [];
+  let keyContributions: string[] = [];
   try {
     authors = JSON.parse(p.authorsJson || '[]');
   } catch {
     authors = [];
+  }
+  try {
+    const raw = JSON.parse(p.keyContributionsJson || '[]');
+    keyContributions = Array.isArray(raw) ? raw.map(String) : [];
+  } catch {
+    keyContributions = [];
   }
   return {
     id: p.id,
@@ -197,6 +208,10 @@ export async function getPaperById(id: string): Promise<CurriculumPaper | null> 
     publishedDate: p.publishedAt || '',
     status: p.status,
     arxivId: p.arxivId,
+    pdfUrl: p.pdfUrl,
+    summaryMarkdown: p.summaryMarkdown,
+    keyContributions,
+    source: p.source,
   };
 }
 

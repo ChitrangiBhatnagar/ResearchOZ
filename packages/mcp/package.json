@@ -1,8 +1,8 @@
 {
   "name": "@research-os/mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "ResearchOS MCP server — stdio tools over @research-os/db for Cursor agents",
+  "description": "ResearchOS MCP second-brain server — papers, knowledge graph, curriculum over @research-os/db",
   "bin": {
     "researchos-mcp": "./src/index.ts"
   },

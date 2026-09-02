@@ -33,6 +33,14 @@ const CANONICAL: Array<{
   { label: 'Triton', type: 'framework', description: 'Python DSL for writing efficient GPU kernels.' },
   { label: 'PagedAttention', type: 'algorithm', description: 'Virtual-memory style KV cache management for LLM serving.' },
   { label: 'GQA', type: 'technique', description: 'Grouped-query attention sharing KV heads across query groups.' },
+  { label: 'LoRA', type: 'technique', description: 'Low-rank adapters for parameter-efficient fine-tuning.' },
+  { label: 'RLHF', type: 'technique', description: 'Reinforcement learning from human feedback for alignment.' },
+  { label: 'DPO', type: 'technique', description: 'Direct Preference Optimization without an explicit reward model.' },
+  { label: 'KV Cache', type: 'technique', description: 'Cached key/value tensors for autoregressive decoding.' },
+  { label: 'Quantization', type: 'technique', description: 'Lower-precision weights/activations (INT8/INT4/FP8) for inference.' },
+  { label: 'Speculative Decoding', type: 'algorithm', description: 'Draft-then-verify decoding to accelerate LLM generation.' },
+  { label: 'Diffusion', type: 'model_architecture', description: 'Generative models via iterative denoising of noise.' },
+  { label: 'RAG', type: 'technique', description: 'Retrieval-augmented generation combining search with LLMs.' },
 ];
 
 const CANONICAL_EDGES: Array<[string, string, EdgeType]> = [
@@ -45,9 +53,15 @@ const CANONICAL_EDGES: Array<[string, string, EdgeType]> = [
   ['FlashAttention', 'CUDA', 'uses'],
   ['Triton', 'CUDA', 'uses'],
   ['PagedAttention', 'Attention', 'improves'],
+  ['PagedAttention', 'KV Cache', 'improves'],
   ['RoPE', 'Transformer', 'uses'],
   ['MoE', 'Transformer', 'uses'],
   ['FSDP', 'Transformer', 'uses'],
+  ['LoRA', 'GPT', 'improves'],
+  ['DPO', 'RLHF', 'replaces'],
+  ['Speculative Decoding', 'KV Cache', 'uses'],
+  ['Quantization', 'CUDA', 'uses'],
+  ['RAG', 'Attention', 'uses'],
   ['BERT', 'GPT', 'replaces'],
 ];
 
@@ -63,7 +77,7 @@ function matchesConcept(text: string, concept: string): boolean {
   if (c === 'gpt') return /\bgpt\b|chatgpt|decoder-only/.test(t);
   if (c === 'bert') return /\bbert\b/.test(t);
   if (c === 'moe') return /mixture of experts|\bmoe\b/.test(t);
-  if (c === 'gqa') return /grouped-query|\bgqa\b|multi-query/.test(t);
+  if (c === 'gqa') return /grouped-query|\bgqa\b|multi-query|\bmqa\b/.test(t);
   if (c === 'rope') return /\brope\b|rotary/.test(t);
   if (c === 'fsdp') return /\bfsdp\b|fully sharded|zero-/.test(t);
   if (c === 'cuda') return /\bcuda\b|gpu kernel|tensor core/.test(t);
@@ -72,6 +86,14 @@ function matchesConcept(text: string, concept: string): boolean {
   if (c === 'flashattention') return /flash.?attention/.test(t);
   if (c === 'triton') return /\btriton\b/.test(t);
   if (c === 'pagedattention') return /paged.?attention|vllm/.test(t);
+  if (c === 'lora') return /\blora\b|low-rank adapt/.test(t);
+  if (c === 'rlhf') return /\brlhf\b|reinforcement learning from human/.test(t);
+  if (c === 'dpo') return /\bdpo\b|direct preference/.test(t);
+  if (c === 'kv cache') return /kv.?cache|key.?value cache/.test(t);
+  if (c === 'quantization') return /quantiz|int4|int8|fp8|gptq|awq/.test(t);
+  if (c === 'speculative decoding') return /speculative decoding|draft model/.test(t);
+  if (c === 'diffusion') return /diffusion|denoising|ddpm|stable diffusion/.test(t);
+  if (c === 'rag') return /\brag\b|retrieval.?augmented/.test(t);
   return t.includes(c);
 }
 
@@ -181,23 +203,24 @@ export async function buildKnowledgeGraph(): Promise<{ nodes: number; edges: num
     const pid = await addNode(p.title, 'paper', {
       description: p.abstract,
       sourcePaperId: p.id,
-      importance: p.status === 'processed' ? 0.8 : 0.45,
+      importance: p.status === 'processed' ? 0.8 : p.status === 'reading' ? 0.65 : 0.45,
     });
-    const hay = `${p.title} ${p.abstract} ${p.primaryCategory || ''}`;
+    const hay = `${p.title} ${p.abstract} ${p.summaryMarkdown || ''} ${p.primaryCategory || ''}`;
     for (const c of CANONICAL) {
       if (matchesConcept(hay, c.label)) {
         const cid = nodeIds.get(c.label.toLowerCase());
-        if (cid) await addEdge(pid, cid, 'cites');
+        if (cid) await addEdge(pid, cid, 'cites', `Keyword link: paper mentions ${c.label}`);
       }
     }
     for (const m of milestoneRows) {
-      if (matchesConcept(hay, m.title.split('&')[0]!.trim())) {
+      const subjectKey = m.title.split(/[&–—-]/)[0]!.trim();
+      if (subjectKey.length >= 4 && matchesConcept(hay, subjectKey)) {
         const mid = milestoneNode.get(m.id);
-        if (mid) await addEdge(pid, mid, 'cites');
+        if (mid) await addEdge(pid, mid, 'cites', `Linked to curriculum subject ${m.title}`);
       }
     }
   }
 
-  logger.info('Knowledge graph rebuilt', { nodes: nodeCount, edges: edgeCount });
+  logger.info('Knowledge graph rebuilt (second brain)', { nodes: nodeCount, edges: edgeCount });
   return { nodes: nodeCount, edges: edgeCount };
 }

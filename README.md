@@ -312,9 +312,15 @@ ResearchOS exposes a local **stdio MCP server** (`@research-os/mcp`) so Cursor a
 | `search_topics` | Find topics by query, subject, or status |
 | `update_topic_status` | Cycle or set topic status (`not_started` → `in_progress` → `completed`) |
 | `list_papers` / `get_paper` | Research library read |
-| `fetch_papers` | Ingest from `arxiv`, `nvidia`, `huggingface`, `openreview`, `paperswithcode` |
+| `get_paper_detail` | Paper + summary + linked second-brain concepts |
+| `fetch_papers` | Ingest from arXiv (NVIDIA/HF/etc. filters) → auto rebuild graph |
+| `update_paper_status` | `inbox` → `reading` → `processed` → `archived` |
+| `update_paper_notes` | Write markdown notes / summary on a paper |
+| `link_paper_concept` | Manually link paper ↔ concept (creates label if needed) |
+| `search_second_brain` | Unified search across papers, concepts, topics |
+| `second_brain_stats` | Paper / node / edge counts |
 | `get_knowledge_graph` | Nodes + edges summary |
-| `get_concept` | Node detail (notes, papers, edges, implementations) |
+| `get_concept` | Node detail by id or label |
 | `rebuild_graph` | Refresh graph links from curriculum + papers |
 | `get_habits` / `toggle_habit` | Consistency matrix for the current week |
 | `generate_study_plan` | Daily plan from `available_minutes` + `energy_level` |
@@ -322,13 +328,24 @@ ResearchOS exposes a local **stdio MCP server** (`@research-os/mcp`) so Cursor a
 
 ### Resources
 
-Read-only JSON resources:
-
 | URI | Contents |
 |-----|----------|
 | `researchos://roadmap` | Active roadmap tree |
 | `researchos://papers` | Paper library (up to 200) |
 | `researchos://graph` | Knowledge graph payload |
+| `researchos://second-brain` | Stats + graph size summary |
+
+### Second-brain flow (papers → graph)
+
+```
+fetch_papers  →  SQLite papers (+ flashcards)
+              →  buildKnowledgeGraph()
+              →  knowledge_nodes / knowledge_edges
+search_second_brain / get_paper_detail / get_concept  (read)
+link_paper_concept / update_paper_notes               (write)
+```
+
+See [docs/decisions/0002-second-brain-mcp.md](docs/decisions/0002-second-brain-mcp.md).
 
 ### Manual run
 
