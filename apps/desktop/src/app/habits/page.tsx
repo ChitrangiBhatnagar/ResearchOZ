@@ -4,6 +4,7 @@ import * as React from 'react';
 import { Flame, Check, TrendingUp, Sparkles } from 'lucide-react';
 import { Card, Badge, Heatmap } from '@research-os/ui';
 import type { HeatmapDay } from '@research-os/types';
+import { useDomainEvents } from '../../components/domain-event-listener';
 
 const DAYS_HEADER = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -66,6 +67,10 @@ export default function HabitsPage() {
   React.useEffect(() => {
     void load();
   }, [load]);
+
+  useDomainEvents((event) => {
+    if (event.type === 'habit.updated') void load();
+  });
 
   const toggleDay = async (habitId: string, dayIndex: number) => {
     if (!data) return;

@@ -11,5 +11,6 @@ export * from './queries/topics';
 export * from './queries/flashcards';
 export * from './queries/planner';
 export * from './queries/second-brain';
+export * from './queries/events';
 export * from './graph/build-knowledge-graph';
 export * from './seed';

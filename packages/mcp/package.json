@@ -2,7 +2,7 @@
   "name": "@research-os/mcp",
   "version": "0.2.0",
   "private": true,
-  "description": "ResearchOS MCP second-brain server — papers, knowledge graph, curriculum over @research-os/db",
+  "description": "Client-agnostic ResearchOS MCP adapter over application services",
   "bin": {
     "researchos-mcp": "./src/index.ts"
   },
@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
-    "@research-os/db": "workspace:*",
+    "@research-os/application": "workspace:*",
     "@research-os/shared": "workspace:*",
     "zod": "^3.25.76"
   },

@@ -39,6 +39,9 @@ importers:
       '@hugeicons/react':
         specifier: ^1.1.9
         version: 1.1.9(react@19.2.8)
+      '@research-os/application':
+        specifier: workspace:*
+        version: link:../../packages/application
       '@research-os/db':
         specifier: workspace:*
         version: link:../../packages/db
@@ -116,6 +119,16 @@ importers:
         specifier: ^5.7.3
         version: 5.9.3
 
+  packages/application:
+    dependencies:
+      '@research-os/db':
+        specifier: workspace:*
+        version: link:../db
+    devDependencies:
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
   packages/db:
     dependencies:
       '@libsql/client':
@@ -155,9 +168,9 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.30.0
         version: 1.30.0(zod@3.25.76)
-      '@research-os/db':
+      '@research-os/application':
         specifier: workspace:*
-        version: link:../db
+        version: link:../application
       '@research-os/shared':
         specifier: workspace:*
         version: link:../shared

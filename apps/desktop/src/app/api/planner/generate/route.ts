@@ -11,6 +11,13 @@ export async function POST(request: Request) {
       energy_level?: 'low' | 'medium' | 'high' | 'peak';
     };
     const availableMinutes = Math.min(Math.max(body.available_minutes ?? 120, 15), 480);
+    const energyLevels = ['low', 'medium', 'high', 'peak'] as const;
+    if (body.energy_level !== undefined && !energyLevels.includes(body.energy_level)) {
+      return NextResponse.json(
+        { success: false, error: { message: 'energy_level must be low, medium, high, or peak' } },
+        { status: 400 }
+      );
+    }
     const energyLevel = body.energy_level ?? 'medium';
     const plan = await generateDailyPlan({ availableMinutes, energyLevel });
     return NextResponse.json({ success: true, data: plan });

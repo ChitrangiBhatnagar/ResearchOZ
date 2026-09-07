@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * ResearchOS MCP — Cursor-facing "second brain" over local SQLite.
+ * ResearchOS MCP — client-agnostic integration adapter for ResearchOS.
  *
  * Pipeline:
  *   fetch_papers → arXiv ingest → papers table → buildKnowledgeGraph
@@ -14,24 +14,25 @@ import {
   getActiveRoadmapTree,
   getPapers,
   getPaperById,
-  searchAndIngestPapers,
   getGraphPayload,
-  buildKnowledgeGraph,
   getHabitsWeek,
-  toggleHabitLog,
-  updateTopicStatus,
   generateDailyPlan,
   getActivityHeatmap,
   resolveRepoRoot,
   resolveDatabasePath,
   getPaperDetail,
-  updatePaperStatus,
-  updatePaperNotes,
-  linkPaperToConcept,
   searchSecondBrain,
   resolveConcept,
   getSecondBrainStats,
-} from '@research-os/db';
+  searchTopics,
+  updateTopicStatusCommand,
+  toggleHabit,
+  updatePaperStatusCommand,
+  updatePaperNotesCommand,
+  linkPaperConceptCommand,
+  rebuildGraphCommand,
+  fetchPapersCommand,
+} from '@research-os/application';
 
 function jsonText(data: unknown) {
   return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
@@ -41,44 +42,13 @@ function text(msg: string) {
   return { content: [{ type: 'text' as const, text: msg }] };
 }
 
-async function searchTopics(args: {
-  query?: string;
-  subject?: string;
-  status?: string;
-  limit?: number;
-}) {
-  const roadmap = await getActiveRoadmapTree();
-  if (!roadmap) return [];
-
-  const q = args.query?.toLowerCase() ?? '';
-  const subject = args.subject?.toLowerCase();
-  const status = args.status;
-  const limit = args.limit ?? 50;
-
-  const out: Array<{
-    id: string;
-    title: string;
-    subject: string;
-    status: string;
-    difficulty: string;
-  }> = [];
-
-  for (const m of roadmap.milestones) {
-    if (subject && !m.title.toLowerCase().includes(subject)) continue;
-    for (const t of m.topics) {
-      if (status && t.status !== status) continue;
-      if (q && !t.title.toLowerCase().includes(q) && !(t.description ?? '').toLowerCase().includes(q)) continue;
-      out.push({
-        id: t.id,
-        title: t.title,
-        subject: m.title,
-        status: t.status,
-        difficulty: t.difficulty,
-      });
-      if (out.length >= limit) return out;
-    }
+async function safeTool<T>(operation: () => Promise<T>) {
+  try {
+    return jsonText(await operation());
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unexpected application error';
+    return text(`ResearchOS operation failed: ${message}`);
   }
-  return out;
 }
 
 const server = new McpServer({
@@ -140,9 +110,11 @@ server.tool(
     status: z.enum(['not_started', 'in_progress', 'completed', 'review_needed']).optional(),
   },
   async ({ topicId, status }) => {
-    const result = await updateTopicStatus(topicId, status);
-    if (!result) return text(`Topic not found: ${topicId}`);
-    return jsonText(result);
+    return safeTool(async () => {
+      const result = await updateTopicStatusCommand({ topicId, status });
+      if (!result) throw new Error(`Topic not found: ${topicId}`);
+      return result;
+    });
   }
 );
 
@@ -195,7 +167,7 @@ server.tool(
     maxResults: z.number().int().min(1).max(15).optional(),
   },
   async ({ query, source, maxResults }) =>
-    jsonText(await searchAndIngestPapers({ query, source, maxResults }))
+    safeTool(() => fetchPapersCommand({ query, source, maxResults }))
 );
 
 server.tool(
@@ -206,9 +178,11 @@ server.tool(
     status: z.enum(['inbox', 'reading', 'processed', 'archived']),
   },
   async ({ paperId, status }) => {
-    const result = await updatePaperStatus(paperId, status);
-    if (!result) return text(`Paper not found: ${paperId}`);
-    return jsonText(result);
+    return safeTool(async () => {
+      const result = await updatePaperStatusCommand({ paperId, status });
+      if (!result) throw new Error(`Paper not found: ${paperId}`);
+      return result;
+    });
   }
 );
 
@@ -220,9 +194,11 @@ server.tool(
     notes: z.string().describe('Markdown notes or summary'),
   },
   async ({ paperId, notes }) => {
-    const result = await updatePaperNotes(paperId, notes);
-    if (!result) return text(`Paper not found: ${paperId}`);
-    return jsonText(result);
+    return safeTool(async () => {
+      const result = await updatePaperNotesCommand({ paperId, notes });
+      if (!result) throw new Error(`Paper not found: ${paperId}`);
+      return result;
+    });
   }
 );
 
@@ -240,7 +216,11 @@ server.tool(
   },
   async ({ paperId, conceptId, conceptLabel, edgeType }) => {
     if (!conceptId && !conceptLabel) return text('Provide conceptId or conceptLabel');
-    return jsonText(await linkPaperToConcept({ paperId, conceptId, conceptLabel, edgeType }));
+    return safeTool(async () => {
+      const result = await linkPaperConceptCommand({ paperId, conceptId, conceptLabel, edgeType });
+      if (!result.ok) throw new Error(result.message);
+      return result;
+    });
   }
 );
 
@@ -277,10 +257,9 @@ server.tool(
   }
 );
 
-server.tool('rebuild_graph', 'Rebuild knowledge graph links from curriculum and papers', {}, async () => {
-  const result = await buildKnowledgeGraph();
-  return jsonText(result);
-});
+server.tool('rebuild_graph', 'Rebuild knowledge graph links from curriculum and papers', {}, async () =>
+  safeTool(rebuildGraphCommand)
+);
 
 // ── Habits / planner / activity ─────────────────────────────────────────────
 
@@ -297,8 +276,10 @@ server.tool(
   },
   async ({ habitId, date }) => {
     const logDate = date ?? new Date().toISOString().slice(0, 10);
-    const result = await toggleHabitLog(habitId, logDate);
-    return jsonText({ habitId, date: logDate, ...result });
+    return safeTool(async () => {
+      const result = await toggleHabit({ habitId, date: logDate });
+      return { habitId, date: logDate, ...result };
+    });
   }
 );
 

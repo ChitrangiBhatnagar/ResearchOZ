@@ -12,6 +12,7 @@
     "studio": "drizzle-kit studio",
     "seed": "tsx ./src/seed.ts",
     "import:master": "tsx ./src/importers/master-tracker-importer.ts",
+    "test": "tsx ./src/__tests__/integration.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

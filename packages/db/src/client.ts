@@ -253,6 +253,14 @@ async function initDatabaseTables(client: Client): Promise<void> {
       description TEXT,
       created_at TEXT NOT NULL
     );`,
+    `CREATE TABLE IF NOT EXISTS domain_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      type TEXT NOT NULL,
+      aggregate_id TEXT,
+      payload_json TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );`,
+    `CREATE INDEX IF NOT EXISTS domain_events_created_idx ON domain_events(created_at);`,
   ];
 
   for (const sql of statements) {

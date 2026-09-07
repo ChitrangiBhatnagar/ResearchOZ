@@ -11,6 +11,7 @@ import type { CommandPaletteAction } from '@research-os/types';
 import { ExcelImportModal } from '../components/excel-import-modal';
 import { Noto_Sans } from 'next/font/google';
 import { cn } from '@/lib/utils';
+import { DomainEventListener } from '../components/domain-event-listener';
 
 const notoSans = Noto_Sans({
   subsets: ['latin'],
@@ -81,6 +82,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={cn('font-sans', notoSans.variable)} suppressHydrationWarning>
       <body className="bg-background text-foreground antialiased flex h-dvh max-h-dvh overflow-hidden font-sans">
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+          <DomainEventListener />
           <div className="flex-1 flex items-stretch min-w-0 min-h-0 p-2 sm:p-3 md:p-5">
             <div className="w-full min-w-0 min-h-0 rounded-2xl md:rounded-3xl border border-border/70 bg-card/40 p-1 shadow-2xl overflow-hidden backdrop-blur-sm">
               <div className="flex h-full min-h-0 min-w-0 rounded-[1.1rem] md:rounded-[1.35rem] overflow-hidden bg-background">

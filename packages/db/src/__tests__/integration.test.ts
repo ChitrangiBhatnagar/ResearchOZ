@@ -1,7 +1,7 @@
 import * as XLSX from 'xlsx';
 import path from 'node:path';
 import fs from 'node:fs';
-import { getDatabase, closeDatabase } from '../client';
+import { getDatabase, closeDatabase, appendDomainEvent, getDomainEvents } from '../index';
 import { roadmaps, milestones, topics } from '../schema/roadmap';
 import { habits, habitLogs } from '../schema/habits';
 import { flashcards } from '../schema/flashcards';
@@ -41,7 +41,20 @@ async function runTests() {
   console.log(`✓ Knowledge Graph Nodes Count: ${allNodes.length}`);
   if (allNodes.length === 0) throw new Error('Assertion failed: Expected knowledge nodes');
 
-  // Test 2: SM-2 Spaced Repetition Logic
+  // Test 2: Domain event cursor used by MCP-to-UI synchronization
+  const event = await appendDomainEvent({
+    type: 'topic.updated',
+    aggregateId: 'integration-test-topic',
+    payload: { changedFields: ['status'] },
+  });
+  const received = await getDomainEvents(event.id - 1);
+  const matchingEvent = received.find((candidate) => candidate.id === event.id);
+  if (!matchingEvent || matchingEvent.type !== 'topic.updated' || matchingEvent.aggregateId !== 'integration-test-topic') {
+    throw new Error('Assertion failed: Domain event cursor/payload mismatch');
+  }
+  console.log('✓ Domain Event Cursor:', matchingEvent);
+
+  // Test 3: SM-2 Spaced Repetition Logic
   const sm2Initial = calculateSM2NextReview(5, 0, 0, 2.5);
   console.log('✓ SM-2 Perfect Rating Calculation:', sm2Initial);
   if (sm2Initial.intervalDays !== 1 || sm2Initial.repetitionNumber !== 1) {
@@ -54,7 +67,7 @@ async function runTests() {
     throw new Error('Assertion failed: SM-2 second interval mismatch');
   }
 
-  // Test 3: Programmatic Excel Creation & Ingestion Test
+  // Test 4: Programmatic Excel Creation & Ingestion Test
   const testExcelPath = path.resolve(process.cwd(), 'storage/test_curriculum.xlsx');
   const wb = XLSX.utils.book_new();
   const testData = [

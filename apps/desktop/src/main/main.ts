@@ -2,10 +2,13 @@ import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import path from 'node:path';
 import { createLogger } from '@research-os/shared';
 import { importRoadmapFromExcel, getDatabase } from '@research-os/db';
+import { readEvents } from '@research-os/application';
 
 const logger = createLogger('ElectronMain');
 
 let mainWindow: BrowserWindow | null = null;
+let lastDomainEventId = 0;
+let domainEventTimer: ReturnType<typeof setInterval> | null = null;
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 
@@ -83,10 +86,23 @@ function registerIpcHandlers() {
   });
 }
 
+async function startDomainEventBridge() {
+  const existingEvents = await readEvents(0);
+  lastDomainEventId = existingEvents.at(-1)?.id ?? 0;
+  domainEventTimer = setInterval(async () => {
+    const events = await readEvents(lastDomainEventId);
+    for (const event of events) {
+      lastDomainEventId = event.id;
+      mainWindow?.webContents.send('domain-event', event);
+    }
+  }, 1000);
+}
+
 app.whenReady().then(() => {
   // Ensure DB initialized on launch
   getDatabase();
   registerIpcHandlers();
+  void startDomainEventBridge();
   createWindow();
 
   app.on('activate', () => {
@@ -97,6 +113,7 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
+  if (domainEventTimer) clearInterval(domainEventTimer);
   if (process.platform !== 'darwin') {
     app.quit();
   }

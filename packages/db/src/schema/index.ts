@@ -4,3 +4,4 @@ export * from './sessions';
 export * from './research';
 export * from './flashcards';
 export * from './graph';
+export * from './events';

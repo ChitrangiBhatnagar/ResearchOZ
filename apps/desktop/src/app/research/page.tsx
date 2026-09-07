@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { Search, Download, Sparkles, FileText, RefreshCw, Loader2 } from 'lucide-react';
 import { Card, Button, Badge, Input } from '@research-os/ui';
+import { useDomainEvents } from '../../components/domain-event-listener';
 
 interface PaperItem {
   id: string;
@@ -55,6 +56,10 @@ export default function ResearchPage() {
   React.useEffect(() => {
     void load();
   }, [load]);
+
+  useDomainEvents((event) => {
+    if (event.type === 'paper.updated' || event.type === 'research.imported') void load();
+  });
 
   const syncWorkbook = async () => {
     setSyncing(true);

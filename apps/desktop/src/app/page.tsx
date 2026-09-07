@@ -20,6 +20,7 @@ import { TopicTile } from '../components/ui/topic';
 import { MiniCalendar } from '../components/ui/calendar';
 import Link from 'next/link';
 import type { HeatmapDay } from '@research-os/types';
+import { useDomainEvents } from '../components/domain-event-listener';
 
 type TopicStatus = 'not_started' | 'in_progress' | 'completed' | 'review_needed';
 type Difficulty = 'beginner' | 'intermediate' | 'advanced' | 'expert';
@@ -121,6 +122,12 @@ export default function DashboardPage() {
   React.useEffect(() => {
     void load();
   }, [load]);
+
+  useDomainEvents((event) => {
+    if (event.type === 'topic.updated' || event.type === 'habit.updated' || event.type === 'research.imported') {
+      void load();
+    }
+  });
 
   const reimport = async () => {
     setImporting(true);

@@ -15,6 +15,7 @@ import {
   Badge,
   Progress,
 } from '@research-os/ui';
+import { useDomainEvents } from '../../components/domain-event-listener';
 
 interface TopicItem {
   id: string;
@@ -84,6 +85,10 @@ export default function RoadmapPage() {
   React.useEffect(() => {
     void load();
   }, [load]);
+
+  useDomainEvents((event) => {
+    if (event.type === 'topic.updated' || event.type === 'research.imported') void load();
+  });
 
   const syncWorkbook = async () => {
     setSyncing(true);

@@ -70,14 +70,19 @@ The application treats your Excel study curriculum as the single source of truth
 |                                        |                                          |
 |                                        v                                          |
 |  +------------------------------------------------------------------------------+ |
+|  |                 ResearchOS Application Services & API                        | |
+|  |  - Canonical topic, planner, progress, graph, and research workflows         | |
+|  +--------------------------------------+---------------------------------------+ |
+|                                         |                                       |
+|                                         v                                       |
 |  |                      Local SQLite Database & Storage                         | |
 |  |  - LibSQL / Drizzle ORM (Roadmaps, Topics, Habits, Papers, Graph, Cards)     | |
 |  |  - storage/papers • storage/cache • storage/embeddings                       | |
 |  +------------------------------------------------------------------------------+ |
 |                                        ^                                          |
-|                                        | same DB                                  |
+|                                        | application services                    |
 |  +------------------------------------------------------------------------------+ |
-|  |                 ResearchOS MCP Server (stdio → Cursor)                       | |
+|  |                 ResearchOS MCP Server (stdio adapter)                        | |
 |  |  Tools: roadmap, papers, graph, habits, planner, activity heatmap            | |
 |  |  Resources: researchos://roadmap | papers | graph                            | |
 |  +------------------------------------------------------------------------------+ |
@@ -108,7 +113,8 @@ research-os/
 │   ├── types/               # TypeScript domain models & API contracts
 │   ├── shared/              # Structured JSON logger, SM-2 math, constants, date utils
 │   ├── db/                  # Normalized SQLite schemas, Drizzle ORM, Excel ingestion
-│   ├── mcp/                 # Cursor MCP stdio server over @research-os/db
+│   ├── application/         # Canonical application services over repositories
+│   ├── mcp/                 # Client-agnostic MCP adapter over application services
 │   └── ui/                  # Shadcn primitives, Linear dark theme tokens, Heatmap
 ├── storage/
 │   ├── papers/              # Cached research PDFs
@@ -267,7 +273,7 @@ pnpm --filter @research-os/desktop build
 
 ## ResearchOS MCP (Cursor)
 
-ResearchOS exposes a local **stdio MCP server** (`@research-os/mcp`) so Cursor agents can read and update your roadmap, papers, knowledge graph, habits, and study plan from the **same SQLite database** as the desktop app.
+ResearchOS exposes a local **stdio MCP adapter** (`@research-os/mcp`) so Cursor, Claude, Windsurf, and other MCP clients can read and update your roadmap, papers, knowledge graph, habits, and study plan through the canonical application services. MCP never accesses SQLite directly.
 
 ### Setup
 
@@ -293,7 +299,7 @@ ResearchOS exposes a local **stdio MCP server** (`@research-os/mcp`) so Cursor a
    }
    ```
 
-   Run from the monorepo root. `DATABASE_PATH` is resolved relative to the repo root via `@research-os/db` (same as the desktop app).
+  Run from the monorepo root. During development, the application service resolves `DATABASE_PATH` relative to the repo root. In production, Electron should supervise the application API and MCP process so clients never need to know the SQLite path.
 
 3. Restart Cursor or reload MCP servers. Try prompts like:
    - "List subjects in my roadmap"
@@ -345,7 +351,7 @@ search_second_brain / get_paper_detail / get_concept  (read)
 link_paper_concept / update_paper_notes               (write)
 ```
 
-See [docs/decisions/0002-second-brain-mcp.md](docs/decisions/0002-second-brain-mcp.md).
+MCP is an integration boundary, not a persistence boundary. Mutations go through application services so validation, transactions, side effects, and future UI invalidation can be shared by the desktop UI, API, automation, and external MCP clients. See [docs/decisions/0002-second-brain-mcp.md](docs/decisions/0002-second-brain-mcp.md).
 
 ### Manual run
 
