@@ -72,13 +72,12 @@ export async function getPaperDetail(id: string): Promise<PaperDetail | null> {
       const nodes = await db.select().from(knowledgeNodes).where(inArray(knowledgeNodes.id, otherIds));
       const byId = new Map(nodes.map((n) => [n.id, n]));
       concepts = edges
-        .map((e) => {
+        .flatMap((e): PaperDetail['concepts'] => {
           const oid = e.sourceNodeId === paperNode.id ? e.targetNodeId : e.sourceNodeId;
           const n = byId.get(oid);
-          if (!n || n.nodeType === 'paper') return null;
-          return { id: n.id, label: n.label, nodeType: n.nodeType, edgeType: e.edgeType };
-        })
-        .filter((c): c is PaperDetail['concepts'][number] => Boolean(c));
+          if (!n || n.nodeType === 'paper') return [];
+          return [{ id: n.id, label: n.label, nodeType: n.nodeType, edgeType: e.edgeType }];
+        });
     }
   }
 

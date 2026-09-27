@@ -145,7 +145,7 @@ export async function importMasterTracker(filePath?: string): Promise<{
     const projCol = headers.indexOf('Mini Project');
     const notesCol = headers.indexOf('Notes');
 
-    let currentCategoryTopic = sheetName;
+    let currentCategoryTopic: string = sheetName;
 
     for (let r = headerRowIdx + 1; r < rawRows.length; r++) {
       const row = rawRows[r] as unknown[];
