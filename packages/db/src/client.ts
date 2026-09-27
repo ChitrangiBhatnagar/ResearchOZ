@@ -43,6 +43,16 @@ export function getDatabase(dbPath?: string): LibSQLDatabase<typeof schema> {
     return dbInstance;
   }
 
+  // Serverless hosts (e.g. Vercel) have no persistent filesystem, so use a hosted libSQL/Turso database.
+  const remoteUrl = process.env.DATABASE_URL;
+  if (remoteUrl && /^(libsql|https?|wss?):\/\//.test(remoteUrl)) {
+    logger.info('Initializing remote LibSQL database connection', { host: new URL(remoteUrl).host });
+    rawClient = createClient({ url: remoteUrl, authToken: process.env.DATABASE_AUTH_TOKEN });
+    initPromise = initDatabaseTables(rawClient);
+    dbInstance = drizzle(rawClient, { schema });
+    return dbInstance;
+  }
+
   const resolvedPath = resolveDatabasePath(dbPath);
   const dir = path.dirname(resolvedPath);
 
