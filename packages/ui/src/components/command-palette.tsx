@@ -36,25 +36,25 @@ export function CommandPalette({ open, onOpenChange, actions }: CommandPalettePr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="overflow-hidden p-0 max-w-xl bg-zinc-950/95 border-zinc-800 shadow-2xl backdrop-blur-xl">
+      <DialogContent className="overflow-hidden p-0 max-w-xl shadow-2xl">
         <DialogTitle className="sr-only">Command Palette</DialogTitle>
         <CommandPrimitive className="flex h-full w-full flex-col overflow-hidden rounded-xl">
-          <div className="flex items-center border-b border-zinc-800/80 px-3">
-            <Search className="mr-2.5 h-4 w-4 shrink-0 text-zinc-400" />
+          <div className="flex items-center border-b border-border/80 px-3">
+            <Search className="mr-2.5 h-4 w-4 shrink-0 text-muted-foreground" />
             <CommandPrimitive.Input
               placeholder="Type a command or search (Ctrl+K)..."
-              className="flex h-11 w-full rounded-md bg-transparent py-3 text-xs text-zinc-100 outline-none placeholder:text-zinc-500 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-11 w-full rounded-md bg-transparent py-3 text-xs text-foreground outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
             />
           </div>
           <CommandPrimitive.List className="max-h-80 overflow-y-auto p-2 scrollbar-none">
-            <CommandPrimitive.Empty className="py-6 text-center text-xs text-zinc-500">
+            <CommandPrimitive.Empty className="py-6 text-center text-xs text-muted-foreground">
               No results found.
             </CommandPrimitive.Empty>
             {Array.from(categories.entries()).map(([category, items]) => (
               <CommandPrimitive.Group
                 key={category}
                 heading={category}
-                className="overflow-hidden px-1 py-1.5 text-[11px] font-semibold text-zinc-400"
+                className="overflow-hidden px-1 py-1.5 text-[11px] font-semibold text-muted-foreground"
               >
                 {items.map((item) => (
                   <CommandPrimitive.Item
@@ -63,16 +63,16 @@ export function CommandPalette({ open, onOpenChange, actions }: CommandPalettePr
                       onOpenChange(false);
                       item.action();
                     }}
-                    className="relative flex cursor-pointer select-none items-center rounded-lg px-2 py-1.5 text-xs text-zinc-200 outline-none hover:bg-zinc-800/80 hover:text-zinc-50 data-[selected=true]:bg-zinc-800 data-[selected=true]:text-zinc-50 transition-colors"
+                    className="relative flex cursor-pointer select-none items-center rounded-lg px-2 py-1.5 text-xs text-foreground outline-none hover:bg-muted data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground transition-colors"
                   >
                     <div className="flex flex-col flex-1">
                       <span className="font-medium">{item.title}</span>
                       {item.subtitle && (
-                        <span className="text-[10px] text-zinc-400">{item.subtitle}</span>
+                        <span className="text-[10px] text-muted-foreground">{item.subtitle}</span>
                       )}
                     </div>
                     {item.shortcut && (
-                      <kbd className="ml-auto pointer-events-none inline-flex h-4 select-none items-center gap-1 rounded bg-zinc-800/90 px-1.5 font-mono text-[9px] font-medium text-zinc-400">
+                      <kbd className="ml-auto pointer-events-none inline-flex h-4 select-none items-center gap-1 rounded bg-muted px-1.5 font-mono text-[9px] font-medium text-muted-foreground">
                         {item.shortcut}
                       </kbd>
                     )}

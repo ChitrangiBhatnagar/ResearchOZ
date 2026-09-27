@@ -13,9 +13,7 @@ import {
   TrendingUp,
   RefreshCw,
 } from 'lucide-react';
-import { Badge, ProgressRing, Heatmap } from '@research-os/ui';
-import { Button } from '../components/ui/button';
-import { Card } from '../components/ui/card';
+import { Badge, Button, Card, ProgressRing, Heatmap } from '@research-os/ui';
 import { TopicTile } from '../components/ui/topic';
 import { MiniCalendar } from '../components/ui/calendar';
 import Link from 'next/link';
@@ -134,7 +132,7 @@ export default function DashboardPage() {
     try {
       const res = await fetch('/api/curriculum/import', { method: 'POST' });
       const json = await res.json();
-      if (!res.ok || !json.ok) throw new Error(json.error || json.detail || 'Import failed');
+      if (!res.ok || !json.ok) throw new Error(json.detail || json.error || 'Import failed');
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -149,8 +147,12 @@ export default function DashboardPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ habitId: id, date: today }),
-    });
-    if (!res.ok) return;
+    }).catch(() => null);
+    if (!res?.ok) {
+      setError('Could not update the habit. Please try again.');
+      return;
+    }
+    setError(null);
     const json = await res.json();
     if (json.toggled) {
       setHabitStatus((prev) => ({ ...prev, [id]: Boolean(json.toggled.completed) }));
@@ -204,6 +206,7 @@ export default function DashboardPage() {
             {data?.roadmap?.targetRole || 'AI Engineering curriculum'} · Source:{' '}
             <span className="text-foreground/80">Master Phases 1–3 workbook</span>
           </p>
+          {error && <p className="text-xs text-destructive mt-1">{error}</p>}
         </div>
         <div className="flex flex-wrap items-center gap-2 shrink-0">
           <Button
@@ -530,11 +533,12 @@ export default function DashboardPage() {
                     variant={done ? 'primary' : 'ghost'}
                     size="sm"
                     onClick={() => toggleHabit(h.id)}
-                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl"
+                    className="w-full h-8 flex items-center justify-between px-3 rounded-xl"
+                    aria-pressed={done}
                   >
                     <span className="text-xs">
                       {h.name}
-                      <span className="text-muted-foreground ml-1">
+                      <span className="opacity-70 ml-1">
                         ({h.targetDailyUnits}
                         {h.unitLabel})
                       </span>

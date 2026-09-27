@@ -95,7 +95,7 @@ export default function RoadmapPage() {
     try {
       const res = await fetch('/api/curriculum/import', { method: 'POST' });
       const json = await res.json();
-      if (!res.ok || !json.ok) throw new Error(json.error || json.detail || 'Import failed');
+      if (!res.ok || !json.ok) throw new Error(json.detail || json.error || 'Import failed');
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -113,8 +113,12 @@ export default function RoadmapPage() {
     const topic = milestone?.topics.find((t) => t.id === topicId);
     if (!topic) return;
 
-    const res = await fetch(`/api/curriculum/topics/${topicId}`, { method: 'PATCH' });
-    if (!res.ok) return;
+    const res = await fetch(`/api/curriculum/topics/${topicId}`, { method: 'PATCH' }).catch(() => null);
+    if (!res?.ok) {
+      setError('Could not update the topic status. Please try again.');
+      return;
+    }
+    setError(null);
     const updated = await res.json();
 
     setMilestones((prev) =>
@@ -281,6 +285,9 @@ export default function RoadmapPage() {
                       >
                         <div className="flex items-center space-x-3.5 flex-1 min-w-0">
                           <button
+                            type="button"
+                            title="Cycle status: not started → in progress → completed"
+                            aria-label={`Change status of ${topic.title} (currently ${topic.status.replace('_', ' ')})`}
                             onClick={() => void toggleTopicStatus(milestone.id, topic.id)}
                             className={`w-5 h-5 rounded-md flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
                               isDone

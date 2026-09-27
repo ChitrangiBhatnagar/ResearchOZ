@@ -1,17 +1,23 @@
 'use client';
 
 import * as React from 'react';
-import { Search, Play } from 'lucide-react';
+import { Search, Play, Sparkles } from 'lucide-react';
 import { Button } from '@research-os/ui';
 import { ThemeToggle } from './theme-toggle';
+import { useResearchCopilot } from './research-copilot';
+import { cn } from '@/lib/utils';
 
 interface HeaderProps {
   onOpenCommandPalette: () => void;
 }
 
+type EngineStatus = { sidecar: boolean; llm: boolean } | null;
+
 export function Header({ onOpenCommandPalette }: HeaderProps) {
   const [isStudying, setIsStudying] = React.useState(false);
   const [seconds, setSeconds] = React.useState(0);
+  const [engine, setEngine] = React.useState<EngineStatus>(null);
+  const { openCopilot, open: copilotOpen } = useResearchCopilot();
 
   React.useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -21,15 +27,44 @@ export function Header({ onOpenCommandPalette }: HeaderProps) {
     return () => clearInterval(interval);
   }, [isStudying]);
 
+  React.useEffect(() => {
+    let cancelled = false;
+    const check = () =>
+      fetch('/api/research/status')
+        .then((r) => r.json())
+        .then((s: EngineStatus) => {
+          if (!cancelled) setEngine(s);
+        })
+        .catch(() => {
+          if (!cancelled) setEngine({ sidecar: false, llm: false });
+        });
+    void check();
+    const timer = setInterval(check, 60_000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, []);
+
   const formatTimer = (totalSeconds: number) => {
     const mins = Math.floor(totalSeconds / 60);
     const secs = totalSeconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const engineLabel = !engine ? 'Checking AI…' : engine.llm ? 'AI engine ready' : engine.sidecar ? 'AI model offline' : 'Library only';
+  const engineTitle = !engine
+    ? 'Checking the local AI engine'
+    : engine.llm
+      ? 'Local AI server and language model are running'
+      : engine.sidecar
+        ? 'AI server is running but Ollama is not — the copilot will show sources without explanations'
+        : 'AI server is not running — the copilot will show matching sources without explanations';
+
   return (
     <header className="h-12 shrink-0 border-b border-border/80 bg-background/70 px-3 sm:px-4 md:px-6 flex items-center justify-between gap-2 select-none backdrop-blur-md sticky top-0 z-40 min-w-0">
       <button
+        type="button"
         onClick={onOpenCommandPalette}
         className="flex items-center space-x-2.5 px-3 py-1.5 rounded-xl bg-muted/50 border border-border/80 text-muted-foreground hover:text-foreground hover:border-border transition-colors w-full max-w-[14rem] sm:max-w-xs md:max-w-sm min-w-0 cursor-pointer text-left"
       >
@@ -41,6 +76,17 @@ export function Header({ onOpenCommandPalette }: HeaderProps) {
       </button>
 
       <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 min-w-0">
+        <Button
+          size="sm"
+          variant={copilotOpen ? 'secondary' : 'outline'}
+          className="h-8 text-xs flex items-center gap-1.5 rounded-xl border-primary/40 text-primary hover:bg-primary/10"
+          onClick={() => openCopilot()}
+          title="Ask the research copilot (Ctrl+J)"
+        >
+          <Sparkles className="w-3.5 h-3.5" />
+          <span>Ask AI</span>
+        </Button>
+
         {isStudying ? (
           <div className="flex items-center space-x-2 bg-primary/10 border border-primary/30 rounded-xl px-2.5 py-1">
             <span className="relative flex h-2 w-2">
@@ -77,11 +123,14 @@ export function Header({ onOpenCommandPalette }: HeaderProps) {
 
         <div className="hidden md:block h-4 w-px bg-border" />
 
-        <div className="hidden md:flex items-center space-x-1.5 text-xs text-muted-foreground">
-          <span className="w-2 h-2 rounded-full bg-emerald-500" />
-          <span className="text-[11px] font-medium text-foreground/80 whitespace-nowrap">
-            Local Engine Ready
-          </span>
+        <div className="hidden md:flex items-center space-x-1.5 text-xs text-muted-foreground" title={engineTitle}>
+          <span
+            className={cn(
+              'w-2 h-2 rounded-full',
+              !engine ? 'bg-muted-foreground/40' : engine.llm ? 'bg-emerald-500' : 'bg-amber-500'
+            )}
+          />
+          <span className="text-[11px] font-medium text-foreground/80 whitespace-nowrap">{engineLabel}</span>
         </div>
       </div>
     </header>

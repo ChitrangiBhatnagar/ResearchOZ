@@ -18,6 +18,18 @@ export function ExcelImportModal({
   const [isProcessing, setIsProcessing] = React.useState(false);
   const [statusMessage, setStatusMessage] = React.useState<string | null>(null);
   const [isSuccess, setIsSuccess] = React.useState(false);
+  const [isElectron, setIsElectron] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsElectron(Boolean((window as any).electronAPI));
+  }, []);
+
+  React.useEffect(() => {
+    if (open) {
+      setStatusMessage(null);
+      setIsSuccess(false);
+    }
+  }, [open]);
 
   const handleSelectAndImport = async () => {
     setIsProcessing(true);
@@ -54,7 +66,7 @@ export function ExcelImportModal({
         const res = await fetch('/api/curriculum/import', { method: 'POST' });
         const json = await res.json();
         if (!res.ok || !json.ok) {
-          throw new Error(json.error || json.detail || 'Master workbook import failed');
+          throw new Error(json.detail || json.error || 'Master workbook import failed');
         }
         setIsSuccess(true);
         setStatusMessage(
@@ -75,48 +87,52 @@ export function ExcelImportModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md bg-zinc-950 border-zinc-800 text-zinc-100 p-6 rounded-xl">
+      <DialogContent className="max-w-md p-6 rounded-xl">
         <DialogHeader>
           <div className="flex items-center space-x-2">
-            <div className="p-2 rounded-lg bg-emerald-950/60 text-emerald-400 border border-emerald-800/40">
+            <div className="p-2 rounded-lg bg-primary/10 text-primary border border-primary/25">
               <FileSpreadsheet className="w-5 h-5" />
             </div>
             <div>
               <DialogTitle className="text-sm font-semibold">Import Study Roadmap</DialogTitle>
-              <DialogDescription className="text-xs text-zinc-400">
-                Upload your XLSX / CSV curriculum as the system source of truth.
+              <DialogDescription className="text-xs">
+                {isElectron
+                  ? 'Upload your XLSX / CSV curriculum as the system source of truth.'
+                  : 'Re-import the master workbook stored in storage/ as the system source of truth.'}
               </DialogDescription>
             </div>
           </div>
         </DialogHeader>
 
         <div className="mt-4 space-y-4">
-          <div
+          <button
+            type="button"
             onClick={handleSelectAndImport}
-            className="border-2 border-dashed border-zinc-800 hover:border-zinc-700 rounded-xl p-6 text-center cursor-pointer transition-colors bg-zinc-900/30 hover:bg-zinc-900/60 flex flex-col items-center justify-center space-y-2"
+            disabled={isProcessing}
+            className="w-full border-2 border-dashed border-border hover:border-primary/40 rounded-xl p-6 text-center cursor-pointer transition-colors bg-muted/30 hover:bg-muted/60 flex flex-col items-center justify-center space-y-2 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <Upload className="w-6 h-6 text-zinc-400" />
-            <p className="text-xs font-medium text-zinc-200">
-              Click to select Excel (.xlsx, .xls, .csv)
+            <Upload className="w-6 h-6 text-muted-foreground" />
+            <p className="text-xs font-medium text-foreground">
+              {isElectron ? 'Click to select Excel (.xlsx, .xls, .csv)' : 'Click to import the master workbook'}
             </p>
-            <p className="text-[10px] text-zinc-500">
+            <p className="text-[10px] text-muted-foreground">
               Auto-parses Milestones, Topics, Estimated Hours, Difficulty & Status
             </p>
-          </div>
+          </button>
 
           {statusMessage && (
             <div
               className={`p-3 rounded-lg text-xs flex items-center space-x-2 border ${
                 isSuccess
-                  ? 'bg-emerald-950/40 border-emerald-800/50 text-emerald-300'
-                  : 'bg-zinc-900/80 border-zinc-800 text-zinc-300'
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300'
+                  : isProcessing
+                    ? 'bg-muted/60 border-border text-foreground/80'
+                    : 'bg-destructive/10 border-destructive/30 text-destructive'
               }`}
             >
-              {isProcessing && <Loader2 className="w-4 h-4 animate-spin text-indigo-400" />}
-              {isSuccess && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
-              {!isProcessing && !isSuccess && (
-                <AlertCircle className="w-4 h-4 text-amber-400" />
-              )}
+              {isProcessing && <Loader2 className="w-4 h-4 animate-spin text-primary" />}
+              {isSuccess && <CheckCircle2 className="w-4 h-4" />}
+              {!isProcessing && !isSuccess && <AlertCircle className="w-4 h-4" />}
               <span className="flex-1">{statusMessage}</span>
             </div>
           )}
@@ -136,7 +152,7 @@ export function ExcelImportModal({
               onClick={handleSelectAndImport}
               disabled={isProcessing}
             >
-              {isProcessing ? 'Importing...' : 'Select File'}
+              {isProcessing ? 'Importing...' : isElectron ? 'Select File' : 'Import Workbook'}
             </Button>
           </div>
         </div>

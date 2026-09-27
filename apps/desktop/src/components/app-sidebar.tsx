@@ -14,6 +14,7 @@ import {
   Cpu,
   Network,
   Settings,
+  CalendarClock,
 } from 'lucide-react';
 import { Badge } from '@research-os/ui';
 import { cn } from '@/lib/utils';
@@ -24,6 +25,7 @@ const NAV_ITEMS = [
   { href: '/knowledge-graph', label: 'Knowledge Graph', icon: Network },
   { href: '/habits', label: 'Habits & Routine', icon: Activity },
   { href: '/research', label: 'Research Hub', icon: BookOpen },
+  { href: '/planner', label: 'Study Planner', icon: CalendarClock },
   { href: '/flashcards', label: 'Flashcards', icon: Layers },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];

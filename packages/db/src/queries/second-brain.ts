@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import { and, desc, eq, inArray, like, or, sql } from 'drizzle-orm';
 import { ensureDatabaseReady } from '../client';
 import { knowledgeEdges, knowledgeNodes } from '../schema/graph';
-import { papers } from '../schema/research';
+import { paperSections, papers } from '../schema/research';
 import { topics } from '../schema/roadmap';
 import { getGraphNodeDetail } from './graph';
 
@@ -331,6 +331,215 @@ export async function searchSecondBrain(
   hits.sort((a, b) => b.score - a.score);
   const sliced = hits.slice(0, Math.min(Math.max(limit, 1), 50));
   return { query, hits: sliced, total: hits.length };
+}
+
+export type ResearchSource = {
+  id: string;
+  kind: 'paper' | 'concept' | 'topic';
+  title: string;
+  /** Text handed to the LLM and shown as the retrieved excerpt. */
+  excerpt: string;
+  score: number;
+  matchedTerms: string[];
+  /** Why this source was included: explicitly selected by the user or found by search. */
+  origin: 'selected' | 'search';
+  paper?: {
+    arxivId: string | null;
+    authors: string[];
+    year: string | null;
+    status: string;
+    category: string;
+    pdfUrl: string | null;
+    sectionTitles: string[];
+  };
+};
+
+const STOPWORDS = new Set(
+  'a an and are as at be been but by can could did do does for from had has have how i if in into is it its me my of on or our over should so such than that the their them then there these they this those to up was we were what when where which while who why will with would you your about across between compare explain find give list mention mentioned papers paper research show simpler terms tell used using commonly approaches repeatedly relevant most question questions any all also more other some very'.split(
+    ' '
+  )
+);
+
+export function extractQueryTerms(question: string): string[] {
+  const tokens = question
+    .toLowerCase()
+    .replace(/[^a-z0-9+#.\- ]+/g, ' ')
+    .split(/\s+/)
+    .map((t) => t.replace(/^[.\-]+|[.\-]+$/g, ''))
+    .filter((t) => t.length >= 2 && !STOPWORDS.has(t));
+  return Array.from(new Set(tokens)).slice(0, 16);
+}
+
+function termScore(hay: string, terms: string[]): { score: number; matched: string[] } {
+  const matched: string[] = [];
+  let score = 0;
+  for (const term of terms) {
+    if (!hay.includes(term)) continue;
+    matched.push(term);
+    const re = new RegExp(`\\b${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g');
+    score += Math.min(hay.match(re)?.length ?? 1, 5);
+  }
+  return { score, matched };
+}
+
+/**
+ * Retrieve grounding material for a research question: explicitly selected papers first, then papers,
+ * concepts, and curriculum topics ranked by term overlap. Extracted PDF sections are used when present.
+ */
+export async function retrieveResearchSources(options: {
+  question: string;
+  paperIds?: string[];
+  limit?: number;
+  /** Similarity scores (0–1) from the sidecar's embedding search, merged into the ranking. */
+  semanticScores?: Record<string, number>;
+}): Promise<{ terms: string[]; sources: ResearchSource[] }> {
+  const db = await ensureDatabaseReady();
+  const terms = extractQueryTerms(options.question);
+  const limit = Math.min(Math.max(options.limit ?? 8, 1), 16);
+  const selectedIds = Array.from(new Set(options.paperIds ?? [])).slice(0, 12);
+
+  const [paperRows, nodeRows, topicRows] = await Promise.all([
+    db.select().from(papers).orderBy(desc(papers.updatedAt)).limit(500),
+    db.select().from(knowledgeNodes).limit(500),
+    db.select().from(topics).limit(500),
+  ]);
+
+  const sectionRows = await getRawSections(paperRows.map((p) => p.id));
+
+  const toPaperSource = (
+    p: (typeof paperRows)[number],
+    origin: ResearchSource['origin'],
+    score: number,
+    matched: string[]
+  ): ResearchSource => {
+    const sections = sectionRows.get(p.id) ?? [];
+    const contributions = parseContributions(p.keyContributionsJson);
+    const relevantSections = sections
+      .map((s) => ({ s, ...termScore(`${s.title} ${s.content}`.toLowerCase(), terms) }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 2)
+      .filter((x) => x.score > 0 || origin === 'selected');
+    const parts = [
+      p.abstract,
+      p.summaryMarkdown ? `Notes: ${p.summaryMarkdown}` : '',
+      contributions.length ? `Key contributions: ${contributions.join('; ')}` : '',
+      ...relevantSections.map((x) => `Section "${x.s.title}": ${x.s.content.slice(0, 700)}`),
+    ].filter(Boolean);
+    return {
+      id: p.id,
+      kind: 'paper',
+      title: p.title,
+      excerpt: parts.join('\n').slice(0, 1800),
+      score,
+      matchedTerms: matched,
+      origin,
+      paper: {
+        arxivId: p.arxivId,
+        authors: parseAuthors(p.authorsJson),
+        year: p.publishedAt ? p.publishedAt.slice(0, 4) : null,
+        status: p.status,
+        category: p.primaryCategory || 'General',
+        pdfUrl: p.pdfUrl ?? (p.arxivId ? `https://arxiv.org/pdf/${p.arxivId}.pdf` : null),
+        sectionTitles: sections.slice(0, 8).map((s) => s.title),
+      },
+    };
+  };
+
+  const selected: ResearchSource[] = [];
+  for (const id of selectedIds) {
+    const p = paperRows.find((row) => row.id === id);
+    if (!p) continue;
+    const { score, matched } = termScore(`${p.title} ${p.abstract}`.toLowerCase(), terms);
+    selected.push(toPaperSource(p, 'selected', 100 + score, matched));
+  }
+
+  const found: ResearchSource[] = [];
+  const semantic = options.semanticScores ?? {};
+  if (terms.length > 0 || Object.keys(semantic).length > 0) {
+    const selectedSet = new Set(selectedIds);
+    for (const p of paperRows) {
+      if (selectedSet.has(p.id)) continue;
+      const title = p.title.toLowerCase();
+      const body = `${p.abstract} ${p.summaryMarkdown || ''} ${p.keyContributionsJson} ${p.primaryCategory || ''}`.toLowerCase();
+      const sectionText = (sectionRows.get(p.id) ?? []).map((s) => `${s.title} ${s.content}`).join(' ').toLowerCase();
+      const t = termScore(title, terms);
+      const b = termScore(body, terms);
+      const s = termScore(sectionText, terms);
+      const matched = Array.from(new Set([...t.matched, ...b.matched, ...s.matched]));
+      const similarity = semantic[p.id] ?? 0;
+      if (matched.length === 0 && similarity < 0.5) continue;
+      const coverage = terms.length ? matched.length / terms.length : 0;
+      const score = t.score * 3 + b.score + s.score * 0.5 + coverage * 4 + similarity * 8;
+      found.push(toPaperSource(p, 'search', Math.round(score * 100) / 100, matched));
+    }
+
+    for (const n of nodeRows) {
+      if (n.nodeType === 'paper') continue;
+      const { score, matched } = termScore(`${n.label} ${n.description || ''}`.toLowerCase(), terms);
+      if (matched.length === 0) continue;
+      found.push({
+        id: n.id,
+        kind: 'concept',
+        title: n.label,
+        excerpt: n.description || '',
+        score: Math.round((score + n.importance) * 50) / 100,
+        matchedTerms: matched,
+        origin: 'search',
+      });
+    }
+
+    for (const t of topicRows) {
+      const { score, matched } = termScore(
+        `${t.title} ${t.description || ''} ${t.notesMarkdown || ''}`.toLowerCase(),
+        terms
+      );
+      if (matched.length === 0) continue;
+      found.push({
+        id: t.id,
+        kind: 'topic',
+        title: t.title,
+        excerpt: [t.description, t.notesMarkdown].filter(Boolean).join('\n').slice(0, 900),
+        score: Math.round(score * 40) / 100,
+        matchedTerms: matched,
+        origin: 'search',
+      });
+    }
+  }
+
+  found.sort((a, b) => b.score - a.score);
+  const papersFound = found.filter((s) => s.kind === 'paper');
+  const others = found.filter((s) => s.kind !== 'paper').slice(0, 3);
+  const remaining = Math.max(limit - selected.length, 0);
+  const reservedForOthers = Math.min(others.length, 2, remaining);
+  const paperPick = papersFound.slice(0, remaining - reservedForOthers);
+  const otherPick = others.slice(0, remaining - paperPick.length);
+  const sources = [...selected, ...paperPick, ...otherPick];
+
+  return { terms, sources };
+}
+
+async function getRawSections(
+  paperIds: string[]
+): Promise<Map<string, Array<{ title: string; content: string }>>> {
+  const out = new Map<string, Array<{ title: string; content: string }>>();
+  if (paperIds.length === 0) return out;
+  const db = await ensureDatabaseReady();
+  const rows = await db
+    .select({
+      paperId: paperSections.paperId,
+      title: paperSections.title,
+      content: paperSections.content,
+      orderIndex: paperSections.orderIndex,
+    })
+    .from(paperSections)
+    .where(inArray(paperSections.paperId, paperIds))
+    .orderBy(paperSections.paperId, paperSections.orderIndex);
+  for (const r of rows) {
+    const list = out.get(r.paperId) ?? [];
+    list.push({ title: r.title, content: r.content });
+    out.set(r.paperId, list);
+  }
+  return out;
 }
 
 /** Resolve a concept by id or label and return graph detail. */

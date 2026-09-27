@@ -79,15 +79,18 @@ export default function HabitsPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ habitId, date }),
-    });
-    const json = await res.json();
-    if (res.ok) {
-      setData(json);
-      const activityRes = await fetch('/api/curriculum/activity?days=90');
-      if (activityRes.ok) {
-        const activityJson = await activityRes.json();
-        setHeatmapData(activityJson.heatmap || []);
-      }
+    }).catch(() => null);
+    const json = res ? await res.json().catch(() => ({})) : {};
+    if (!res?.ok) {
+      setError(json.error || 'Could not update the habit. Please try again.');
+      return;
+    }
+    setError(null);
+    setData(json);
+    const activityRes = await fetch('/api/curriculum/activity?days=90');
+    if (activityRes.ok) {
+      const activityJson = await activityRes.json();
+      setHeatmapData(activityJson.heatmap || []);
     }
   };
 
@@ -188,6 +191,9 @@ export default function HabitsPage() {
                   {h.weeklyLogs.map((isDone, dayIdx) => (
                     <td key={dayIdx} className="py-3 px-3 text-center">
                       <button
+                        type="button"
+                        aria-label={`${h.name} on ${DAYS_HEADER[dayIdx]}: ${isDone ? 'done' : 'not done'}`}
+                        aria-pressed={isDone}
                         onClick={() => void toggleDay(h.id, dayIdx)}
                         className={`w-6 h-6 mx-auto rounded-md flex items-center justify-center transition-colors cursor-pointer ${
                           isDone

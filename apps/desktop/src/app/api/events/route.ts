@@ -4,9 +4,13 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
-  const afterParam = new URL(request.url).searchParams.get('after');
-  let cursor = Number.parseInt(afterParam ?? '0', 10);
-  if (!Number.isFinite(cursor) || cursor < 0) cursor = 0;
+  const afterParam = new URL(request.url).searchParams.get('after') ?? request.headers.get('last-event-id');
+  let cursor = Number.parseInt(afterParam ?? '', 10);
+  if (!Number.isFinite(cursor) || cursor < 0) {
+    // New subscribers only need events from now on; replaying history would re-trigger every page reload.
+    const history = await readEvents(0).catch(() => []);
+    cursor = history.at(-1)?.id ?? 0;
+  }
 
   const encoder = new TextEncoder();
   let timer: ReturnType<typeof setInterval> | undefined;

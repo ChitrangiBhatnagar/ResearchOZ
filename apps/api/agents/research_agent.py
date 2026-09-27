@@ -1,10 +1,11 @@
 import logging
-from typing import Annotated, TypedDict
+from typing import Annotated, Any, TypedDict
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
 
+from config import OLLAMA_CHAT_MODEL
 from services.db import get_paper, list_papers, search_papers_keyword
 from services.embeddings_service import semantic_search
 from services.ollama_service import chat, ollama_available
@@ -99,6 +100,50 @@ def build_agent():
 
 
 agent_app = build_agent()
+
+
+GROUNDED_SYSTEM = """You are the research copilot inside ResearchOS, a personal research workspace.
+Answer ONLY from the numbered sources provided. Rules:
+- Cite every claim with the source number in square brackets, e.g. [1] or [2][3].
+- Never invent papers, authors, results, or numbers that are not in the sources.
+- If the sources do not contain enough information, say so plainly instead of guessing.
+- Use clear, plain language. Prefer short paragraphs or bullet points.
+Reply in exactly this format:
+ANSWER:
+<your grounded answer with [n] citations>
+UNCERTAINTY:
+<what the sources do not cover or where evidence is thin; write "None" if fully supported>"""
+
+
+GENERAL_SYSTEM = """You are the research copilot inside ResearchOS, a personal research workspace.
+The user's library had no material relevant to this question, so answer from general knowledge.
+Do not cite or name specific papers unless you are certain they exist; never fabricate references.
+Use clear, plain language. Prefer short paragraphs or bullet points.
+Reply in exactly this format:
+ANSWER:
+<your answer>
+UNCERTAINTY:
+<state that this answer is not backed by the user's library, and note anything you are unsure about>"""
+
+
+def answer_from_sources(
+    question: str, sources: list[dict[str, Any]], context_label: str | None = None
+) -> dict[str, str]:
+    scope = f"Current workspace context: {context_label}\n\n" if context_label else ""
+    if sources:
+        blocks = "\n\n".join(
+            f"[{s['ref']}] ({s.get('kind', 'paper')}) {s['title']}\n{s['text'][:1800]}" for s in sources
+        )
+        messages = [
+            {"role": "system", "content": GROUNDED_SYSTEM},
+            {"role": "user", "content": f"{scope}Sources:\n{blocks}\n\nQuestion: {question}"},
+        ]
+    else:
+        messages = [
+            {"role": "system", "content": GENERAL_SYSTEM},
+            {"role": "user", "content": f"{scope}Question: {question}"},
+        ]
+    return {"answer": chat(messages), "model": OLLAMA_CHAT_MODEL}
 
 
 def run_agent(message: str, history: list[dict[str, str]] | None = None) -> str:

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { buildKnowledgeGraph, getGraphPayload } from '@research-os/db';
+import { rebuildGraphCommand } from '@research-os/application';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -19,7 +20,7 @@ export async function GET() {
 
 export async function POST() {
   try {
-    const result = await buildKnowledgeGraph();
+    const result = await rebuildGraphCommand();
     const data = await getGraphPayload();
     return NextResponse.json({ ok: true, ...result, ...data });
   } catch (error) {

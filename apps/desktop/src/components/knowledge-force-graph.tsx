@@ -33,11 +33,45 @@ function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
 }
 
-function orangeFor(type: string, importance: number): { core: string; glow: string; alpha: number } {
-  if (type === 'paper') return { core: '#fdba74', glow: '#fb923c', alpha: 0.55 + importance * 0.35 };
-  if (type === 'hardware' || type === 'framework') return { core: '#fb923c', glow: '#f97316', alpha: 0.5 + importance * 0.3 };
-  if (type === 'concept') return { core: '#fed7aa', glow: '#f97316', alpha: 0.35 + importance * 0.25 };
-  return { core: '#ffedd5', glow: '#f97316', alpha: 0.45 + importance * 0.4 };
+type GraphPalette = {
+  background: string;
+  edge: string;
+  label: string;
+  halo: string;
+  cross: string;
+  glowAlpha: number;
+  cores: { paper: string; hardware: string; concept: string; other: string };
+  glows: { paper: string; other: string };
+};
+
+const PALETTES: Record<'light' | 'dark', GraphPalette> = {
+  dark: {
+    background: '#050506',
+    edge: 'rgba(249,115,22,0.12)',
+    label: 'rgba(255,237,213,0.9)',
+    halo: '249,115,22',
+    cross: '253,186,116',
+    glowAlpha: 0.55,
+    cores: { paper: '#fdba74', hardware: '#fb923c', concept: '#fed7aa', other: '#ffedd5' },
+    glows: { paper: '#fb923c', other: '#f97316' },
+  },
+  light: {
+    background: '#fffdfa',
+    edge: 'rgba(194,65,12,0.16)',
+    label: 'rgba(67,20,7,0.85)',
+    halo: '234,88,12',
+    cross: '194,65,12',
+    glowAlpha: 0.3,
+    cores: { paper: '#c2410c', hardware: '#ea580c', concept: '#f97316', other: '#9a3412' },
+    glows: { paper: '#fb923c', other: '#fdba74' },
+  },
+};
+
+function orangeFor(type: string, pal: GraphPalette): { core: string; glow: string } {
+  if (type === 'paper') return { core: pal.cores.paper, glow: pal.glows.paper };
+  if (type === 'hardware' || type === 'framework') return { core: pal.cores.hardware, glow: pal.glows.other };
+  if (type === 'concept') return { core: pal.cores.concept, glow: pal.glows.other };
+  return { core: pal.cores.other, glow: pal.glows.other };
 }
 
 function radiusFor(importance: number) {
@@ -85,9 +119,12 @@ export const KnowledgeForceGraph = React.forwardRef<
     edges: GEdge[];
     selectedId: string | null;
     onSelect: (id: string | null) => void;
+    theme?: 'light' | 'dark';
   }
->(function KnowledgeForceGraph({ nodes, edges, selectedId, onSelect }, ref) {
+>(function KnowledgeForceGraph({ nodes, edges, selectedId, onSelect, theme = 'dark' }, ref) {
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
+  const paletteRef = React.useRef<GraphPalette>(PALETTES[theme]);
+  paletteRef.current = PALETTES[theme];
   const posCache = React.useRef(new Map<string, { x: number; y: number }>());
   const sim = React.useRef<{
     nodes: GNode[];
@@ -197,17 +234,18 @@ export const KnowledgeForceGraph = React.forwardRef<
     };
 
     const drawStar = (x: number, y: number, r: number, color: string, glow: string, pulse: number) => {
+      const pal = paletteRef.current;
       const halo = ctx.createRadialGradient(x, y, 0, x, y, r * 7);
-      halo.addColorStop(0, `rgba(249,115,22,${0.22 * pulse})`);
-      halo.addColorStop(0.35, `rgba(249,115,22,${0.08 * pulse})`);
-      halo.addColorStop(1, 'rgba(249,115,22,0)');
+      halo.addColorStop(0, `rgba(${pal.halo},${0.22 * pulse})`);
+      halo.addColorStop(0.35, `rgba(${pal.halo},${0.08 * pulse})`);
+      halo.addColorStop(1, `rgba(${pal.halo},0)`);
       ctx.fillStyle = halo;
       ctx.beginPath();
       ctx.arc(x, y, r * 7, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.save();
-      ctx.strokeStyle = `rgba(253,186,116,${0.35 * pulse})`;
+      ctx.strokeStyle = `rgba(${pal.cross},${0.35 * pulse})`;
       ctx.lineWidth = 0.6;
       ctx.beginPath();
       ctx.moveTo(x, y - r * 3.2);
@@ -220,7 +258,7 @@ export const KnowledgeForceGraph = React.forwardRef<
       ctx.beginPath();
       ctx.arc(x, y, r * 1.6, 0, Math.PI * 2);
       ctx.fillStyle = glow;
-      ctx.globalAlpha = 0.55;
+      ctx.globalAlpha = pal.glowAlpha;
       ctx.fill();
       ctx.globalAlpha = 1;
 
@@ -293,7 +331,8 @@ export const KnowledgeForceGraph = React.forwardRef<
       const dpr = dprRef.current;
       const cam = camera.current;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.fillStyle = '#050506';
+      const pal = paletteRef.current;
+      ctx.fillStyle = pal.background;
       ctx.fillRect(0, 0, w, h);
 
       ctx.setTransform(dpr * cam.scale, 0, 0, dpr * cam.scale, dpr * cam.tx, dpr * cam.ty);
@@ -304,7 +343,7 @@ export const KnowledgeForceGraph = React.forwardRef<
         const a = byId.get(e.source);
         const b = byId.get(e.target);
         if (!a || !b) continue;
-        ctx.strokeStyle = 'rgba(249,115,22,0.12)';
+        ctx.strokeStyle = pal.edge;
         ctx.beginPath();
         ctx.moveTo(a.x, a.y);
         ctx.lineTo(b.x, b.y);
@@ -315,12 +354,12 @@ export const KnowledgeForceGraph = React.forwardRef<
       const hover = hoverId.current;
       for (const n of ns) {
         const r = radiusFor(n.importance);
-        const pal = orangeFor(n.nodeType, n.importance);
+        const colors = orangeFor(n.nodeType, pal);
         const isSel = n.id === sel;
         const isHov = n.id === hover;
         const twinkle = 0.85 + Math.sin(timeRef.current * 0.03 + hash01(n.id) * 12) * 0.15;
         const pulse = isSel ? 1.35 : isHov ? 1.15 : twinkle;
-        drawStar(n.x, n.y, isSel ? r + 0.6 : r, pal.core, pal.glow, pulse);
+        drawStar(n.x, n.y, isSel ? r + 0.6 : r, colors.core, colors.glow, pulse);
       }
 
       const labeled = ns.filter((n) => n.id === sel || n.id === hover || n.importance > 0.92).slice(0, 18);
@@ -328,7 +367,7 @@ export const KnowledgeForceGraph = React.forwardRef<
         const r = radiusFor(n.importance);
         ctx.font = `${10 / cam.scale}px "Noto Sans", system-ui, sans-serif`;
         ctx.textAlign = 'center';
-        ctx.fillStyle = 'rgba(255,237,213,0.9)';
+        ctx.fillStyle = pal.label;
         ctx.fillText(n.label.length > 26 ? n.label.slice(0, 26) + '…' : n.label, n.x, n.y + r + 11);
       }
 

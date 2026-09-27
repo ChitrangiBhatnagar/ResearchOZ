@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { searchAndIngestPapers, type PaperSource } from '@research-os/db';
+import { fetchPapersCommand } from '@research-os/application';
+import type { PaperSource } from '@research-os/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -10,7 +11,7 @@ export async function POST(request: Request) {
     if (!body.query?.trim()) {
       return NextResponse.json({ error: 'query is required' }, { status: 400 });
     }
-    const result = await searchAndIngestPapers({
+    const result = await fetchPapersCommand({
       query: body.query,
       source: body.source,
       maxResults: body.maxResults,

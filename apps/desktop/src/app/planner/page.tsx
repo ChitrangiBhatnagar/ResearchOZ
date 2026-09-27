@@ -1,18 +1,10 @@
 'use client';
 
 import * as React from 'react';
-import {
-  Sparkles,
-  Clock,
-  Zap,
-  CheckCircle2,
-  Loader2,
-} from 'lucide-react';
-import {
-  Card,
-  Button,
-  Badge,
-} from '@research-os/ui';
+import Link from 'next/link';
+import { Sparkles, Clock, Zap, CheckCircle2, Loader2 } from 'lucide-react';
+import { Card, Button, Badge } from '@research-os/ui';
+import { cn } from '@/lib/utils';
 
 type EnergyLevel = 'low' | 'medium' | 'high' | 'peak';
 
@@ -34,17 +26,17 @@ interface DailyPlan {
   items: PlanItem[];
 }
 
-const ENERGY_OPTIONS: { value: EnergyLevel; label: string; color: string; description: string }[] = [
-  { value: 'low', label: 'Low', color: 'text-zinc-400', description: 'Light review, reading, flashcards' },
-  { value: 'medium', label: 'Medium', color: 'text-blue-400', description: 'Conceptual study, note synthesis' },
-  { value: 'high', label: 'High', color: 'text-emerald-400', description: 'Deep derivations, paper analysis' },
-  { value: 'peak', label: 'Peak', color: 'text-amber-400', description: 'Kernel coding, hardest topics first' },
+const ENERGY_OPTIONS: { value: EnergyLevel; label: string; description: string }[] = [
+  { value: 'low', label: 'Low', description: 'Light review, reading, flashcards' },
+  { value: 'medium', label: 'Medium', description: 'Conceptual study, note synthesis' },
+  { value: 'high', label: 'High', description: 'Deep derivations, paper analysis' },
+  { value: 'peak', label: 'Peak', description: 'Kernel coding, hardest topics first' },
 ];
 
-const PRIORITY_STYLES: Record<string, string> = {
-  must_do: 'bg-indigo-950/40 border-indigo-700/50 text-indigo-300',
-  should_do: 'bg-zinc-800/60 border-zinc-700/50 text-zinc-300',
-  optional: 'bg-zinc-900/40 border-zinc-800/40 text-zinc-400',
+const PRIORITY_STYLES: Record<PlanItem['priority'], string> = {
+  must_do: 'border-primary/35 bg-primary/5',
+  should_do: 'border-border bg-card',
+  optional: 'border-border/60 bg-muted/30',
 };
 
 export default function PlannerPage() {
@@ -59,6 +51,7 @@ export default function PlannerPage() {
     setIsGenerating(true);
     setError(null);
     setPlan(null);
+    setCompletedItems(new Set());
 
     try {
       const res = await fetch('/api/planner/generate', {
@@ -69,11 +62,9 @@ export default function PlannerPage() {
           energy_level: energyLevel,
         }),
       });
-
-      if (!res.ok) throw new Error(`API error: ${res.status}`);
-      const data = await res.json();
-      if (data.success) setPlan(data.data);
-      else throw new Error(data.error?.message || 'Planner returned no plan');
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.success) throw new Error(data?.error?.message || `Planner error (${res.status})`);
+      setPlan(data.data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate plan');
     } finally {
@@ -95,42 +86,38 @@ export default function PlannerPage() {
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto pb-12">
-      {/* Header */}
       <div>
-        <h1 className="text-xl font-bold text-zinc-100 tracking-tight">
-          AI Study Planner
-        </h1>
-        <p className="text-xs text-zinc-400 mt-0.5">
+        <h1 className="text-xl font-semibold tracking-tight">AI Study Planner</h1>
+        <p className="text-xs text-muted-foreground mt-0.5">
           Acts as your engineering manager — inputs your energy and time budget, outputs today&apos;s optimal study plan.
         </p>
       </div>
 
-      {/* Configuration Card */}
-      <Card className="p-5 bg-zinc-900/40 border-zinc-800/80">
+      <Card className="p-5">
         <div className="space-y-5">
-          {/* Available Time Slider */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-zinc-200 flex items-center space-x-1.5">
-                <Clock className="w-3.5 h-3.5 text-indigo-400" />
+              <label htmlFor="planner-minutes" className="text-xs font-semibold flex items-center space-x-1.5">
+                <Clock className="w-3.5 h-3.5 text-primary" />
                 <span>Available Study Time</span>
               </label>
-              <span className="text-xs font-mono font-bold text-indigo-300">
+              <span className="text-xs font-mono font-semibold text-primary">
                 {availableMinutes >= 60
                   ? `${Math.floor(availableMinutes / 60)}h ${availableMinutes % 60 > 0 ? `${availableMinutes % 60}m` : ''}`
                   : `${availableMinutes}m`}
               </span>
             </div>
             <input
+              id="planner-minutes"
               type="range"
               min={15}
               max={480}
               step={15}
               value={availableMinutes}
               onChange={(e) => setAvailableMinutes(Number(e.target.value))}
-              className="w-full h-1.5 rounded-full appearance-none bg-zinc-800 accent-indigo-500 cursor-pointer"
+              className="w-full h-1.5 rounded-full appearance-none bg-muted accent-[var(--primary)] cursor-pointer"
             />
-            <div className="flex justify-between text-[10px] text-zinc-500">
+            <div className="flex justify-between text-[10px] text-muted-foreground">
               <span>15 min</span>
               <span>1h</span>
               <span>2h</span>
@@ -139,25 +126,27 @@ export default function PlannerPage() {
             </div>
           </div>
 
-          {/* Energy Level Selector */}
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-zinc-200 flex items-center space-x-1.5">
-              <Zap className="w-3.5 h-3.5 text-amber-400" />
+            <p className="text-xs font-semibold flex items-center space-x-1.5">
+              <Zap className="w-3.5 h-3.5 text-primary" />
               <span>Current Energy Level</span>
-            </label>
+            </p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {ENERGY_OPTIONS.map((opt) => (
                 <button
                   key={opt.value}
+                  type="button"
                   onClick={() => setEnergyLevel(opt.value)}
-                  className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer ${
+                  aria-pressed={energyLevel === opt.value}
+                  className={cn(
+                    'p-2.5 rounded-lg border text-left transition-colors cursor-pointer',
                     energyLevel === opt.value
-                      ? 'border-indigo-600/70 bg-indigo-950/40'
-                      : 'border-zinc-800 bg-zinc-900/60 hover:border-zinc-700'
-                  }`}
+                      ? 'border-primary/50 bg-primary/10'
+                      : 'border-border bg-card hover:bg-muted/50'
+                  )}
                 >
-                  <div className={`text-xs font-semibold ${opt.color}`}>{opt.label}</div>
-                  <div className="text-[10px] text-zinc-500 mt-0.5">{opt.description}</div>
+                  <div className={cn('text-xs font-semibold', energyLevel === opt.value && 'text-primary')}>{opt.label}</div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">{opt.description}</div>
                 </button>
               ))}
             </div>
@@ -165,7 +154,8 @@ export default function PlannerPage() {
 
           <Button
             variant="primary"
-            className="w-full h-9 text-sm font-semibold flex items-center justify-center space-x-2"
+            size="lg"
+            className="w-full font-semibold gap-2"
             onClick={() => void generatePlan()}
             disabled={isGenerating}
           >
@@ -185,80 +175,89 @@ export default function PlannerPage() {
       </Card>
 
       {error && (
-        <p className="text-xs text-destructive text-center">{error}</p>
+        <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive text-center">
+          {error}
+        </div>
       )}
 
-      {/* Generated Plan */}
       {plan && (
         <div className="space-y-4">
-          {/* Plan Header */}
-          <Card className="p-4 border-indigo-900/40 bg-gradient-to-b from-indigo-950/20 to-zinc-900/40">
-            <div className="flex items-start justify-between">
+          <Card className="p-4 border-primary/25 bg-gradient-to-b from-primary/10 to-card">
+            <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="flex items-center space-x-2 mb-1">
-                  <Sparkles className="w-4 h-4 text-indigo-400" />
-                  <h3 className="text-sm font-semibold text-zinc-100">Today&apos;s Optimized Plan</h3>
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  <h3 className="text-sm font-semibold">Today&apos;s Optimized Plan</h3>
                   <Badge variant="indigo" className="text-[10px]">
                     {plan.plan_date}
                   </Badge>
                 </div>
-                <p className="text-xs text-zinc-300 leading-relaxed max-w-2xl">
-                  {plan.focus_suggestion}
-                </p>
+                <p className="text-xs text-foreground/80 leading-relaxed max-w-2xl">{plan.focus_suggestion}</p>
               </div>
               {totalItems > 0 && (
                 <div className="shrink-0 text-right">
-                  <span className="text-lg font-bold text-zinc-100">{completedCount}/{totalItems}</span>
-                  <p className="text-[10px] text-zinc-400">completed</p>
+                  <span className="text-lg font-semibold">
+                    {completedCount}/{totalItems}
+                  </span>
+                  <p className="text-[10px] text-muted-foreground">completed</p>
                 </div>
               )}
             </div>
           </Card>
 
-          {/* Plan Items */}
+          {plan.items.length === 0 && (
+            <Card className="p-6 text-center space-y-2">
+              <p className="text-sm text-muted-foreground">No open topics fit this time budget.</p>
+              <Link href="/roadmap" className="text-xs text-primary hover:text-primary/80">
+                Open the roadmap to add or reopen topics
+              </Link>
+            </Card>
+          )}
+
           <div className="space-y-3">
             {plan.items.map((item) => {
               const isDone = completedItems.has(item.topic_id);
               return (
                 <div
                   key={item.topic_id}
-                  className={`p-4 rounded-xl border transition-all ${
-                    isDone
-                      ? 'border-emerald-800/40 bg-emerald-950/10'
-                      : `${PRIORITY_STYLES[item.priority]} `
-                  }`}
+                  className={cn(
+                    'p-4 rounded-xl border transition-colors',
+                    isDone ? 'border-emerald-500/30 bg-emerald-500/5' : PRIORITY_STYLES[item.priority]
+                  )}
                 >
                   <div className="flex items-start justify-between space-x-4">
                     <div className="flex items-start space-x-3 flex-1 min-w-0">
-                      {/* Order badge */}
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5 ${
-                        isDone ? 'bg-emerald-600 text-white' : 'bg-zinc-800 text-zinc-400'
-                      }`}>
+                      <div
+                        className={cn(
+                          'w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-semibold shrink-0 mt-0.5',
+                          isDone ? 'bg-emerald-600 text-white' : 'bg-secondary text-secondary-foreground'
+                        )}
+                      >
                         {isDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : item.recommended_order}
                       </div>
                       <div className="min-w-0">
-                        <h4 className={`text-xs font-semibold ${isDone ? 'line-through text-zinc-500' : 'text-zinc-100'}`}>
+                        <h4 className={cn('text-xs font-semibold', isDone && 'line-through text-muted-foreground')}>
                           {item.topic_title}
                         </h4>
-                        <p className="text-[10px] text-zinc-500 mt-0.5">
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
                           {item.milestone_title} • {item.estimated_minutes} mins
                         </p>
-                        <p className="text-[10px] text-zinc-400 mt-1.5 leading-relaxed">
-                          {item.reasoning}
-                        </p>
+                        <p className="text-[10px] text-foreground/70 mt-1.5 leading-relaxed">{item.reasoning}</p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2 shrink-0">
-                      <Badge variant={
-                        item.priority === 'must_do' ? 'indigo' :
-                        item.priority === 'should_do' ? 'secondary' : 'outline'
-                      } className="text-[9px] capitalize">
+                      <Badge
+                        variant={
+                          item.priority === 'must_do' ? 'indigo' : item.priority === 'should_do' ? 'secondary' : 'outline'
+                        }
+                        className="text-[9px] capitalize"
+                      >
                         {item.priority.replace('_', ' ')}
                       </Badge>
                       <Button
                         size="sm"
                         variant={isDone ? 'secondary' : 'outline'}
-                        className="h-7 text-[10px] border-zinc-700"
+                        className="h-7 text-[10px]"
                         onClick={() => toggleComplete(item.topic_id)}
                       >
                         {isDone ? 'Undo' : 'Done'}
@@ -271,11 +270,14 @@ export default function PlannerPage() {
           </div>
 
           {completedCount === totalItems && totalItems > 0 && (
-            <Card className="p-5 text-center border-emerald-800/50 bg-emerald-950/20">
-              <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
-              <h3 className="text-sm font-bold text-zinc-100">Session Complete!</h3>
-              <p className="text-xs text-zinc-400 mt-1">
-                Excellent work. Log this session in your habit tracker.
+            <Card className="p-5 text-center border-emerald-500/30 bg-emerald-500/5">
+              <CheckCircle2 className="w-8 h-8 text-emerald-600 dark:text-emerald-400 mx-auto mb-2" />
+              <h3 className="text-sm font-semibold">Session Complete!</h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                Excellent work.{' '}
+                <Link href="/habits" className="text-primary hover:text-primary/80">
+                  Log this session in your habit tracker.
+                </Link>
               </p>
             </Card>
           )}

@@ -61,7 +61,7 @@ export function ProgressRing({
           r={radius}
           stroke="currentColor"
           strokeWidth={strokeWidth}
-          className="text-zinc-800/80 fill-transparent"
+          className="text-muted fill-transparent"
         />
         <circle
           cx={size / 2}
@@ -75,7 +75,7 @@ export function ProgressRing({
           className={cn('fill-transparent transition-all duration-500 ease-out', colorClass)}
         />
       </svg>
-      <span className="absolute text-[10px] font-semibold text-zinc-200">
+      <span className="absolute text-[10px] font-semibold text-foreground">
         {Math.round(value)}%
       </span>
     </div>
