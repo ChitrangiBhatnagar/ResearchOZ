@@ -4,6 +4,7 @@ import * as schema from './schema/index';
 import { createLogger, APP_CONFIG } from '@research-os/shared';
 import path from 'node:path';
 import fs from 'node:fs';
+import os from 'node:os';
 
 const logger = createLogger('DatabaseClient');
 
@@ -38,6 +39,24 @@ export function resolveDatabasePath(dbPath?: string): string {
   return path.isAbsolute(relative) ? relative : path.join(root, relative);
 }
 
+/**
+ * Demo mode for Vercel without a hosted database: only /tmp is writable there, so copy the bundled
+ * snapshot into it. Writes last only as long as the serverless instance and then reset.
+ */
+function prepareDemoDatabase(): string {
+  const target = path.join(os.tmpdir(), 'researchos.db');
+  if (!fs.existsSync(target)) {
+    const snapshot = process.env.DEMO_DATABASE_PATH || path.join(process.cwd(), 'demo', 'researchos-demo.db');
+    if (fs.existsSync(snapshot)) {
+      fs.copyFileSync(snapshot, target);
+      logger.info('Demo mode: copied bundled database snapshot to /tmp', { snapshot });
+    } else {
+      logger.warn('Demo mode: snapshot not found, starting with an empty database', { snapshot });
+    }
+  }
+  return target;
+}
+
 export function getDatabase(dbPath?: string): LibSQLDatabase<typeof schema> {
   if (dbInstance) {
     return dbInstance;
@@ -53,7 +72,7 @@ export function getDatabase(dbPath?: string): LibSQLDatabase<typeof schema> {
     return dbInstance;
   }
 
-  const resolvedPath = resolveDatabasePath(dbPath);
+  const resolvedPath = process.env.VERCEL && !dbPath ? prepareDemoDatabase() : resolveDatabasePath(dbPath);
   const dir = path.dirname(resolvedPath);
 
   if (!fs.existsSync(dir)) {
